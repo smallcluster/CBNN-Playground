@@ -5,6 +5,10 @@
 #include "rlImGui.h"
 
 namespace Utils::Gui {
+
+    void Setup();
+    void ShutDown();
+
     inline void SetupStyle(const bool useDarkStyle){
         useDarkStyle ? ImGui::StyleColorsDark() : ImGui::StyleColorsLight();
         ImGuiStyle &style = ImGui::GetStyle();

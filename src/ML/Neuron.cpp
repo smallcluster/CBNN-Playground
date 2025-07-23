@@ -31,7 +31,7 @@ namespace ML {
             for (auto &[neuron, weight]: _inputs) {
                 inputs.push_back(neuron->eval() * weight);
             }
-            _value = {_aggregate(inputs)};
+            _value = std::max(0.0, _aggregate(inputs));
             return _value.value();
         }
 

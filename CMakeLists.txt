@@ -108,8 +108,8 @@ target_link_libraries(rlimgui PRIVATE raylib imgui)
 add_executable(${PROJECT_NAME}
         src/main.cpp
         # --- Utils ---
-        src/Utils/ImGuiUtils.cpp
-        src/Utils/ImGuiUtils.h
+        src/Utils/GuiUtils.cpp
+        src/Utils/GuiUtils.h
         src/Utils/ColorsUtils.cpp
         src/Utils/ColorsUtils.h
         # --- ML ---

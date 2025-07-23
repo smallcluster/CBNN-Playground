@@ -1,8 +1,6 @@
 #include "MLP.h"
 
 namespace ML {
-    MLP::MLP(const std::function<double()> &weightInitializer) : _weightInitializer(weightInitializer) {
-    }
 
     void MLP::clearCachedValues() const {
         for (const auto &layer: _layers) {
@@ -10,18 +8,16 @@ namespace ML {
         }
     }
 
-    void MLP::eval(const std::vector<double> &inputs) const {
+    std::vector<double> MLP::eval(const std::vector<double> &inputs) const {
         clearCachedValues();
         _layers[0]->setValues(inputs);
-        _layers[_layers.size() - 1]->eval();
+        return std::move(_layers[_layers.size() - 1]->eval());
     }
 
-    void MLP::addLayer(std::unique_ptr<Layer> layer) {
-        _layers.push_back(std::move(layer));
+    void MLP::addLayer(int size, std::mt19937_64& randomGenerator) {
+        _layers.push_back(std::make_unique<Layer>(size));
         if (_layers.size() >= 2) {
-            for (int i = static_cast<int>(_layers.size()) - 2; i < _layers.size() - 1; i++) {
-                _layers[i]->connect(_layers[i + 1].get(), _weightInitializer);
-            }
+            _layers[_layers.size()-2]->connect(_layers[_layers.size()-1].get(), randomGenerator);
         }
     }
 

@@ -1,17 +1,18 @@
 #include "Layer.h"
 
+
 namespace ML {
-    Layer::Layer(const int size) {
+    Layer::Layer(const int size) : _weightDistribution{0, std::sqrt(2.0/static_cast<double>(size))} {
         _neurons.reserve(size);
         for (int i = 0; i < size; ++i) {
             _neurons.push_back(std::make_unique<Neuron>());
         }
     }
 
-    void Layer::connect(Layer *other, const std::function<double()> &weightInitializer) {
+    void Layer::connect(Layer *other, std::mt19937_64& randomGenerator) {
         for (std::unique_ptr<Neuron> &src: _neurons) {
             for (std::unique_ptr<Neuron> &dst: other->_neurons) {
-                src->connect(dst.get(), weightInitializer());
+                src->connect(dst.get(), _weightDistribution(randomGenerator));
             }
         }
     }
@@ -40,10 +41,13 @@ namespace ML {
         }
     }
 
-    void Layer::eval() const {
-        for (const auto &neuron: _neurons) {
-            neuron->eval();
+    std::vector<double> Layer::eval() const {
+        std::vector<double> v;
+        v.reserve(_neurons.size());
+        for (const auto &n: _neurons) {
+            v.push_back(n->eval());
         }
+        return std::move(v);
     }
 
     void Layer::setValues(const std::vector<double> &inputs) const {

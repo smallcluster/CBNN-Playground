@@ -10,16 +10,12 @@
 namespace ML {
     class MLP {
         std::vector<std::unique_ptr<Layer> > _layers;
-        const std::function<double()> &_weightInitializer;
-
     public:
-        explicit MLP(const std::function<double()> &weightInitializer);
-
         void clearCachedValues() const;
 
-        void eval(const std::vector<double> &inputs) const;
+        [[nodiscard]] std::vector<double> eval(const std::vector<double> &inputs) const;
 
-        void addLayer(std::unique_ptr<Layer> layer);
+        void addLayer(int size, std::mt19937_64& randomGenerator);
 
         void draw(Vector2 topLeft, float r, float layerPadding, float neuronPadding) const;
 
