@@ -1,26 +1,27 @@
 #include "Layer.h"
 
+#include "effolkronium/random.hpp"
+
+using Random = effolkronium::random_static;
 
 namespace ML {
-    Layer::Layer(const int size) : _weightDistribution{0, std::sqrt(2.0/static_cast<double>(size))} {
+    Layer::Layer(const int size, const std::function<double(double)> &activation) : _weightDistribution{
+        0, std::sqrt(2.0 / static_cast<double>(size))
+    } {
         _neurons.reserve(size);
-        for (int i = 0; i < size; ++i) {
-            _neurons.push_back(std::make_unique<Neuron>());
-        }
+        for (int i = 0; i < size; ++i)
+            _neurons.push_back(std::make_unique<Neuron>(activation));
     }
 
-    void Layer::connect(Layer *other, std::mt19937_64& randomGenerator) {
-        for (std::unique_ptr<Neuron> &src: _neurons) {
-            for (std::unique_ptr<Neuron> &dst: other->_neurons) {
-                src->connect(dst.get(), _weightDistribution(randomGenerator));
-            }
-        }
+    void Layer::connect(Layer *other) {
+        for (std::unique_ptr<Neuron> &src: _neurons)
+            for (std::unique_ptr<Neuron> &dst: other->_neurons)
+                src->connect(dst.get(), Random::get(_weightDistribution));
     }
 
     void Layer::draw(const float r) const {
-        for (const std::unique_ptr<Neuron> &n: _neurons) {
+        for (const std::unique_ptr<Neuron> &n: _neurons)
             n->draw(r);
-        }
     }
 
     Vector2 Layer::computeDrawSize(const float r, const float padding) const {
@@ -36,23 +37,20 @@ namespace ML {
     }
 
     void Layer::clearCachedValues() const {
-        for (const auto &neuron: _neurons) {
+        for (const auto &neuron: _neurons)
             neuron->clearCachedValue();
-        }
     }
 
     std::vector<double> Layer::eval() const {
         std::vector<double> v;
         v.reserve(_neurons.size());
-        for (const auto &n: _neurons) {
+        for (const auto &n: _neurons)
             v.push_back(n->eval());
-        }
         return std::move(v);
     }
 
     void Layer::setValues(const std::vector<double> &inputs) const {
-        for (int i = 0; i < inputs.size(); ++i) {
+        for (int i = 0; i < inputs.size(); ++i)
             _neurons[i]->setValue(inputs[i]);
-        }
     }
 }

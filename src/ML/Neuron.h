@@ -2,8 +2,8 @@
 
 #include <map>
 #include <optional>
-#include <vector>
 #include "raylib.h"
+#include <functional>
 
 namespace ML {
     class Neuron {
@@ -12,10 +12,12 @@ namespace ML {
         std::map<Neuron *, double> _outputs;
 
         std::optional<double> _value = {};
-
-        [[nodiscard]] double _aggregate(const std::vector<double> &inputs) const;
+        std::function<double(double)> _activation;
 
     public:
+        explicit Neuron(const std::function<double(double)> &activation);
+        //explicit Neuron(double constantValue);
+
         Vector2 position = {0, 0};
 
         void setValue(double val);
@@ -35,5 +37,9 @@ namespace ML {
         void draw(float r) const;
 
         static Vector2 computeDrawSize(float r);
+
+        static const std::function<double(double)> &ReLu();
+
+        static const std::function<double(double)> &Identity();
     };
 }

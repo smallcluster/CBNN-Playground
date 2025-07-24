@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
+include(FetchContent)
+
 project(CoolChicVis)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -10,7 +12,6 @@ add_compile_definitions(ImDrawIdx=unsigned\ int)
 # raylib
 find_package(raylib QUIET)
 if (NOT raylib_FOUND)
-    include(FetchContent)
     FetchContent_Declare(
             raylib
             GIT_REPOSITORY https://github.com/raysan5/raylib.git
@@ -23,7 +24,6 @@ endif ()
 # fmt
 find_package(fmt QUIET)
 if (NOT fmt_FOUND)
-    include(FetchContent)
     FetchContent_Declare(
             fmt
             GIT_REPOSITORY https://github.com/fmtlib/fmt.git
@@ -36,7 +36,6 @@ endif ()
 # spdlog
 find_package(spdlog QUIET)
 if (NOT spdlog_FOUND)
-    include(FetchContent)
     FetchContent_Declare(
             spdlog
             GIT_REPOSITORY https://github.com/gabime/spdlog.git
@@ -46,10 +45,19 @@ if (NOT spdlog_FOUND)
     FetchContent_MakeAvailable(spdlog)
 endif ()
 
+# effolkronium_random
+FetchContent_Declare(
+        effolkronium_random
+        GIT_REPOSITORY https://github.com/ilqvya/random.git
+        GIT_TAG master
+        GIT_SHALLOW 1
+)
+FetchContent_MakeAvailable(effolkronium_random)
+include_directories(${FETCHCONTENT_BASE_DIR}/effolkronium_random-src/include)
+
 # imgui
 find_package(imgui QUIET)
 if (NOT imgui_FOUND)
-    include(FetchContent)
     FetchContent_Declare(
             imgui
             GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -67,7 +75,6 @@ target_include_directories(imgui PUBLIC ${IMGUI_PATH})
 # implot
 find_package(implot QUIET)
 if (NOT implot_FOUND)
-    include(FetchContent)
     FetchContent_Declare(
             implot
             GIT_REPOSITORY https://github.com/epezent/implot.git
@@ -86,7 +93,6 @@ target_link_libraries(implot PRIVATE imgui)
 # rlimgui
 find_package(rlimgui QUIET)
 if (NOT rlimgui_FOUND)
-    include(FetchContent)
     FetchContent_Declare(
             rlimgui
             GIT_REPOSITORY https://github.com/raylib-extras/rlImGui.git
@@ -103,8 +109,6 @@ target_include_directories(rlimgui PUBLIC ${RLIMGUI_PATH})
 target_link_libraries(rlimgui PRIVATE raylib imgui)
 
 
-
-
 add_executable(${PROJECT_NAME}
         src/main.cpp
         # --- Utils ---
@@ -119,14 +123,15 @@ add_executable(${PROJECT_NAME}
         src/ML/Layer.h
         src/ML/MLP.cpp
         src/ML/MLP.h
-
+        src/Utils/MathUtils.cpp
+        src/Utils/MathUtils.h
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_EXE_LINKER_FLAGS "-static")
 endif ()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib fmt imgui implot rlimgui spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)
+target_link_libraries(${PROJECT_NAME} PRIVATE raylib fmt imgui implot rlimgui spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32> )
 set_target_properties(${PROJECT_NAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}
         RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}

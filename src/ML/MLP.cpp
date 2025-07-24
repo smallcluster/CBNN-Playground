@@ -1,11 +1,9 @@
 #include "MLP.h"
 
 namespace ML {
-
     void MLP::clearCachedValues() const {
-        for (const auto &layer: _layers) {
+        for (const auto &layer: _layers)
             layer->clearCachedValues();
-        }
     }
 
     std::vector<double> MLP::eval(const std::vector<double> &inputs) const {
@@ -14,18 +12,21 @@ namespace ML {
         return std::move(_layers[_layers.size() - 1]->eval());
     }
 
-    void MLP::addLayer(int size, std::mt19937_64& randomGenerator) {
-        _layers.push_back(std::make_unique<Layer>(size));
-        if (_layers.size() >= 2) {
-            _layers[_layers.size()-2]->connect(_layers[_layers.size()-1].get(), randomGenerator);
-        }
+    void MLP::addLayer(std::unique_ptr<Layer> layer) {
+        _layers.push_back(std::move(layer));
+        if (_layers.size() >= 2)
+            _layers[_layers.size() - 2]->connect(_layers[_layers.size() - 1].get());
     }
+
+    void MLP::addLayer(int size, const std::function<double(double)> &activation) {
+        addLayer(std::make_unique<Layer>(size, activation));
+    }
+
 
     void MLP::draw(const Vector2 topLeft, const float r, const float layerPadding, const float neuronPadding) const {
         buildDrawLayout(topLeft, r, layerPadding, neuronPadding);
-        for (const auto &layer: _layers) {
+        for (const auto &layer: _layers)
             layer->draw(r);
-        }
     }
 
     void MLP::buildDrawLayout(const Vector2 topLeft, const float r, const float layerPadding,

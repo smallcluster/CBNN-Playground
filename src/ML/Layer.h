@@ -9,7 +9,6 @@
 #include "Neuron.h"
 
 
-
 namespace ML {
     class Layer {
     protected:
@@ -17,9 +16,9 @@ namespace ML {
         std::normal_distribution<double> _weightDistribution;
 
     public:
-        explicit Layer(int size);
+        Layer(int size, const std::function<double(double)> &activation);
 
-        void connect(Layer *other, std::mt19937_64& randomGenerator);
+        void connect(Layer *other);
 
         void draw(float r) const;
 

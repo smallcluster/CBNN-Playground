@@ -3,19 +3,22 @@
 #include <vector>
 #include <memory>
 #include <functional>
-
 #include "Layer.h"
 #include "raylib.h"
 
 namespace ML {
     class MLP {
         std::vector<std::unique_ptr<Layer> > _layers;
+
     public:
         void clearCachedValues() const;
 
         [[nodiscard]] std::vector<double> eval(const std::vector<double> &inputs) const;
 
-        void addLayer(int size, std::mt19937_64& randomGenerator);
+
+        void addLayer(std::unique_ptr<Layer> layer);
+
+        void addLayer(int size, const std::function<double(double)> &activation);
 
         void draw(Vector2 topLeft, float r, float layerPadding, float neuronPadding) const;
 
