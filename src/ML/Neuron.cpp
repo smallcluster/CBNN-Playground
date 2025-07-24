@@ -2,6 +2,7 @@
 
 #include <numeric>
 #include <ranges>
+#include <execution>
 #include "fmt/format.h"
 
 #include "raymath.h"
@@ -22,11 +23,12 @@ namespace ML {
     double Neuron::eval() {
         if (_value.has_value())
             return _value.value();
-        std::vector<double> inputs;
-        inputs.reserve(_inputs.size());
-        for (auto &[neuron, weight]: _inputs)
-            inputs.push_back(neuron->eval() * weight);
-        _value = _activation(std::accumulate(inputs.begin(), inputs.end(), 0.0));
+        // Get weighted values
+        std::vector<double> values(_inputs.size(), 0.0);
+        std::transform(std::execution::seq, _inputs.begin(), _inputs.end(), values.begin(),
+                       [](const std::pair<Neuron *, double> &p) { return p.first->eval() * p.second; });
+        // Return the sum of weighted values
+        _value = std::accumulate(values.begin(), values.end(), 0.0);
         return _value.value();
     }
 

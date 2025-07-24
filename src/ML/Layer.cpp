@@ -1,5 +1,8 @@
 #include "Layer.h"
 
+#include <execution>
+#include <ranges>
+
 #include "effolkronium/random.hpp"
 
 using Random = effolkronium::random_static;
@@ -42,10 +45,11 @@ namespace ML {
     }
 
     std::vector<double> Layer::eval() const {
-        std::vector<double> v;
-        v.reserve(_neurons.size());
-        for (const auto &n: _neurons)
-            v.push_back(n->eval());
+        std::vector<double> v(_neurons.size(), 0.0);
+
+        std::transform(std::execution::par, _neurons.begin(), _neurons.end(), v.begin(),
+                       [](const std::unique_ptr<Neuron> &n) { return n->eval(); });
+
         return std::move(v);
     }
 

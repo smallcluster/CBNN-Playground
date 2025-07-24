@@ -17,6 +17,7 @@
 #include "Utils/MathUtils.h"
 
 
+
 ML::MLP buildCBNR(const std::vector<int> &layerSizes) {
     ML::MLP model;
     model.addLayer(2, ML::Neuron::Identity()); // Pixel coordinates

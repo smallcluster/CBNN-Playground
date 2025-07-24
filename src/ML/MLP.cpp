@@ -9,7 +9,10 @@ namespace ML {
     std::vector<double> MLP::eval(const std::vector<double> &inputs) const {
         clearCachedValues();
         _layers[0]->setValues(inputs);
-        return std::move(_layers[_layers.size() - 1]->eval());
+        std::vector<double> v;
+        for (const auto& layer : _layers)
+            v = layer->eval();
+        return std::move(v);
     }
 
     void MLP::addLayer(std::unique_ptr<Layer> layer) {
