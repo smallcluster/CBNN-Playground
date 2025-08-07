@@ -8,15 +8,15 @@
 
 #include "Neuron.h"
 
-
 namespace ML {
     class Layer {
     protected:
         std::vector<std::unique_ptr<Neuron> > _neurons;
+        std::optional<std::unique_ptr<Neuron>> _biasNeuron;
         std::normal_distribution<double> _weightDistribution;
 
     public:
-        Layer(int size, const std::function<double(double)> &activation);
+        Layer(int size, const ActivationFunc &activation, bool biasNeuron = false);
 
         void connect(Layer *other);
 
@@ -30,6 +30,11 @@ namespace ML {
 
         [[nodiscard]] std::vector<double> eval() const;
 
+        void grad() const;
+
         void setValues(const std::vector<double> &inputs) const;
+        void setGradients(const std::vector<double> &gradients) const;
+
+        void updateWeights(double learningRate) const;
     };
 }
