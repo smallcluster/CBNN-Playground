@@ -1,0 +1,13 @@
+@startuml
+
+class Neuron
+class Layer
+class MLP
+
+Layer *-- Neuron
+MLP *- Layer
+
+Neuron "*" o-- "*" Neuron : inputs
+Neuron "*" o-- "*" Neuron : outputs
+
+@enduml

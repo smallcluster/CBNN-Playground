@@ -1,0 +1,97 @@
+@startuml
+
+package ml {
+    package compute {
+        abstract class ComputeNode
+        interface IComputeGraph
+        class ComputeGraph implements IComputeGraph
+        class ComputeSubGraph implements IComputeGraph
+        ComputeSubGraph *-- ComputeGraph
+
+        IComputeGraph ..> ComputeNode
+        ComputeGraph "1"*--"*" ComputeNode
+        ComputeSubGraph "*" o--"*" ComputeNode
+
+        class AddNode extends ComputeNode
+        class MultNode extends ComputeNode
+
+        class NodeFactory
+        NodeFactory o-- IComputeGraph
+        NodeFactory ..> AddNode
+        NodeFactory ..> MultNode
+
+'        IComputeGraph ..> NodeFactory
+
+        ComputeGraph *-- NodeFactory
+        ComputeSubGraph *-- NodeFactory
+
+        class Slots
+
+        ComputeGraph *-- Slots
+
+        Slots "*"o--"*" ComputeGraph : inputs
+        ComputeGraph "*"o--"*" ComputeGraph : outputs
+
+    }
+
+    package neural {
+        abstract class Loss extends ml.compute.ComputeSubGraph
+            class L2Loss extends Loss
+            class MSELoss extends L2Loss
+            class L1Loss extends Loss
+
+            class MLP
+
+            class Neuron extends ml.compute.ComputeSubGraph
+            class Layer extends ml.compute.ComputeSubGraph
+            Layer "1"*--"*" Neuron
+
+            MLP *--- ComputeGraph
+            MLP "1"*---"*" Layer
+
+            MLP *-- Loss
+    }
+}
+
+package math {
+    class Vec2
+}
+package verlet {
+
+class Vertex
+Vertex "1" *-- "2" math.Vec2
+abstract class Constraint
+
+Constraint "*" o--"1..*" Vertex
+
+class DistanceConstraint extends Constraint
+
+DistanceConstraint "*" o-- "2" Vertex
+
+class World
+
+World "1" *-- "*" Vertex
+World "1" *-- "*" Constraint
+
+}
+
+class ComputeVertex extends verlet.Vertex {
+
+}
+
+ComputeVertex o-- ml.compute.ComputeNode
+
+class Thread
+class SimulationThread extends Thread
+
+SimulationThread *-- verlet.World
+
+class MLPThread extends Thread
+MLPThread *-- ml.neural.MLP
+
+class PixelBuffer
+
+MLPThread *-- PixelBuffer
+
+
+@enduml

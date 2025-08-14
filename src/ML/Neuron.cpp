@@ -143,7 +143,7 @@ namespace ML {
     }
     double sigmoidDiff(const double x) {
         const double v = sigmoidEval(x);
-        return x*(1.0-x);
+        return v*(1.0-v);
     }
     static const ActivationFunc reluStruct = {reluEval, reluDiff};
     static const ActivationFunc identityStruct = {identityEval, identityDiff};

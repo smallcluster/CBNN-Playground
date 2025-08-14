@@ -1,4 +1,4 @@
-#include "../include/Verlet.h"
+#include "libverlet/Verlet.h"
 
 namespace Verlet {
     DistanceConstraint::DistanceConstraint(const Node *n1, const Node *n2) {

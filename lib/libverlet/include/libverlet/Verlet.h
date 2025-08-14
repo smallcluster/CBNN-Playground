@@ -1,13 +1,8 @@
 #pragma once
 
-#include "raylib.h"
-
-#include <gr>
-
 namespace verlet {
 
     struct Node {
-        graph::Node* graphNode = nullptr;
         Vector2 position = {0,0};
         Vector2 oldPosition = {0,0};
         float radius = 16.0;
