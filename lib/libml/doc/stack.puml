@@ -1,0 +1,36 @@
+@startuml
+
+frame ml {
+    node Loss
+
+    node DataSet
+
+    frame neural {
+        node Neuron {
+            node Activation
+            node Aggregation
+        }
+        node MLP
+        node Optimizers
+    }
+
+    frame compute {
+        node Graph
+        node Nodes
+        node Utils
+    }
+}
+Optimizers --> DataSet
+Optimizers --> MLP
+MLP --> Loss
+MLP --> Neuron
+
+Graph --> Nodes
+Nodes --> Utils
+
+Loss --> Graph
+Neuron --> Graph
+
+
+
+@enduml

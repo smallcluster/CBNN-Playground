@@ -15,6 +15,7 @@ public:
   double eval();
   double diff();
   void clearCache();
+  void clearDiffHistory();
   virtual const char *label() = 0;
   ComputeNode();
   explicit ComputeNode(bool updateGradient);
@@ -30,10 +31,11 @@ public:
   unsigned int nbOutputs() const;
 private:
   std::optional<double> _cachedEval = {};
-  std::optional<ContinuousMean> _cachedGradient;
+  std::optional<ContinuousMean> _cachedGradient = {};
+  std::optional<ContinuousMean> _previousGradient = {};
   Slots _slots;
   std::vector<ComputeNode *> _outputs;
-  bool _updateGradient = false;
+  bool _AvgGradient = false;
   virtual double _eval() = 0;
   virtual double _pdiff(const unsigned int index = 0) = 0;
 };
@@ -52,7 +54,7 @@ public:
   const char *label() override;
   void set(const double value);
   void setLabel(const std::string &label);
-  explicit ConstantNode(const double value, const bool updateGradient = false,
+  explicit ConstantNode(const double value, const bool avgGradient = false,
                         const std::string &label = "");
 private:
   double _value;
@@ -204,6 +206,15 @@ private:
   double _pdiff(const unsigned int index = 0) override;
 };
 
+class AvgNode final : public ComputeNode {
+public:
+  const char *label() override;
+
+private:
+  double _eval() override;
+  double _pdiff(const unsigned int index = 0) override;
+};
+
 class IComputeGraph;
 
 class NodeFactory {
@@ -225,6 +236,7 @@ public:
   CteDivideNode &createCteDivNode(const double cte) const;
   LnNode &createLnNode() const;
   AbsNode &createAbsNode() const;
+  AvgNode &createAvgNode() const;
 private:
   NodeFactory() = delete;
   IComputeGraph& _graph;

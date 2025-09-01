@@ -10,7 +10,7 @@ namespace ml {
 // BASE
 ComputeNode::ComputeNode() : ComputeNode(false) {}
 ComputeNode::ComputeNode(const bool updateGradient)
-    : _updateGradient(updateGradient) {}
+    : _AvgGradient(updateGradient) {}
 
 double ComputeNode::eval() {
   if (_cachedEval.has_value())
@@ -21,16 +21,27 @@ double ComputeNode::eval() {
 }
 
 double ComputeNode::diff() {
-  if (_cachedGradient.has_value() && !_updateGradient)
+
+  // Use cached gradient
+  if (_cachedGradient.has_value())
     return _cachedGradient.value().get();
+
+  // If the node tracks its gradient AVG we get its previous AVG
+  // before the cache wipe
+  if (!_AvgGradient || !_previousGradient.has_value()) {
+    ContinuousMean c;
+    _cachedGradient = c;
+  } else {
+    _cachedGradient = _previousGradient;
+  }
+
+  // Compute the new gradient
   double g = 0.0;
   for (int i = 0; i < _outputs.size(); ++i)
     g += _outputs[i]->diff() *
          _outputs[i]->_pdiff(_outputs[i]->_slots.get(*this));
-  if (!_cachedGradient.has_value() || !_updateGradient) {
-    ContinuousMean c;
-    _cachedGradient = c;
-  }
+
+  // Append it to the AVG stream
   _cachedGradient.value() << g;
   return _cachedGradient->get();
 }
@@ -38,6 +49,10 @@ double ComputeNode::diff() {
 void ComputeNode::clearCache() {
   _cachedEval = {};
   _cachedGradient = {};
+}
+
+void ComputeNode::clearDiffHistory() {
+  _previousGradient = {};
 }
 
 void ComputeNode::connect(ComputeNode &other,
@@ -86,9 +101,9 @@ double IdentityNode::_eval() { return inputAt(0).eval(); }
 double IdentityNode::_pdiff(const unsigned int index) { return 1.0; }
 
 // CONSTANT
-ConstantNode::ConstantNode(const double value, const bool updateGradient,
+ConstantNode::ConstantNode(const double value, const bool avgGradient,
                            const std::string &label)
-    : ComputeNode(updateGradient) {
+    : ComputeNode(avgGradient) {
   _value = value;
   _label = label;
 }
@@ -241,6 +256,19 @@ double InvertNode::_pdiff(const unsigned int index) {
   return -1.0 / (v * v);
 }
 
+// AVG
+const char *AvgNode::label() {return "AVG";}
+double AvgNode::_eval() {
+  double avg = 0;
+  const unsigned int n = nbInputs();
+  for (int i=0; i < n; ++i)
+    avg += inputAt(i).eval();
+  return avg / n;
+}
+double AvgNode::_pdiff(const unsigned int index) {
+  return 1.0 / nbInputs();
+}
+
 // NODE FACTORY
 NodeFactory::NodeFactory(IComputeGraph &graph) : _graph(graph) {}
 
@@ -338,6 +366,12 @@ LnNode &NodeFactory::createLnNode() const {
 }
 AbsNode &NodeFactory::createAbsNode() const {
   auto n = std::make_unique<AbsNode>();
+  const auto ptr = n.get();
+  _graph.registerNode(std::move(n));
+  return *ptr;
+}
+AvgNode &NodeFactory::createAvgNode() const {
+  auto n = std::make_unique<AvgNode>();
   const auto ptr = n.get();
   _graph.registerNode(std::move(n));
   return *ptr;

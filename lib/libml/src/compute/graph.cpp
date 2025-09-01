@@ -51,12 +51,26 @@ void ComputeGraph::registerNode(std::unique_ptr<ComputeNode> node) {
   _nodes.push_back(node.get());
   node.release();
 }
+void ComputeGraph::clearCache() {
+  for (const auto n : _nodes)
+    n->clearCache();
+}
+
+void ComputeGraph::clearDiffHistory() {
+  for (const auto n : _nodes)
+    n->clearDiffHistory();
+}
 
 // SUB GRAPH
 ComputeSubGraph::ComputeSubGraph(IComputeGraph &graph)
     : _graph(graph), _nodeFactory(*this) {}
-ComputeEdge
-ComputeSubGraph::createEdge(ComputeNode &src, ComputeNode &dst,
+
+ComputeSubGraph::~ComputeSubGraph() {
+  for (const auto node : _nodes)
+    ComputeSubGraph::removeNode(*node);
+}
+
+ComputeEdge ComputeSubGraph::createEdge(ComputeNode &src, ComputeNode &dst,
                             const std::optional<unsigned int> &slot) {
   const ComputeEdge e = _graph.createEdge(src, dst, slot);
   _edges.insert(e);
@@ -67,13 +81,14 @@ void ComputeSubGraph::removeEdge(const ComputeEdge &edge) {
   _graph.removeEdge(edge);
 }
 std::set<ComputeEdge> &ComputeSubGraph::getEdges() { return _edges; }
+
 void ComputeSubGraph::removeNode(ComputeNode &node) {
   std::set<ComputeEdge> toRemove;
   for (auto e : _edges)
     if (&(e.src) == &node || &(e.dst) == &node)
       toRemove.insert(e);
   for (auto e : toRemove)
-    _edges.erase(e);
+    removeEdge(e);
   _nodes.erase(std::ranges::find(_nodes, &node));
   _graph.removeNode(node);
 }
@@ -88,8 +103,17 @@ void ComputeSubGraph::registerNode(std::unique_ptr<ComputeNode> node) {
   _nodes.push_back(node.get());
   _graph.registerNode(std::move(node));
 }
-IComputeGraph &ComputeSubGraph::baseGraph() const {
-  return _graph;
+IComputeGraph &ComputeSubGraph::baseGraph() const { return _graph; }
+
+void ComputeSubGraph::clearCache() {
+  for (const auto n : _nodes)
+    n->clearCache();
 }
+
+void ComputeSubGraph::clearDiffHistory() {
+  for (const auto n : _nodes)
+    n->clearDiffHistory();
+}
+
 
 } // namespace ml

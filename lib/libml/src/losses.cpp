@@ -3,10 +3,10 @@
 namespace ml {
 
 // Base
-Loss::Loss(ComputeGraph &graph) : ComputeSubGraph(graph) {}
+Loss::Loss(IComputeGraph &graph) : ComputeSubGraph(graph) {}
 
 // L2 Loss
-L2Loss::L2Loss(ComputeGraph &graph) : Loss(graph), _sum(this->Loss::nodeFactory().createAddNode()) {
+L2Loss::L2Loss(IComputeGraph &graph) : Loss(graph), _sum(this->Loss::nodeFactory().createAddNode()) {
 }
 
 void L2Loss::addInput(ComputeNode &predicted, ComputeNode &trueValue) {
@@ -21,7 +21,7 @@ void L2Loss::addInput(ComputeNode &predicted, ComputeNode &trueValue) {
 AddNode &L2Loss::sumNode() const { return _sum; }
 
 // MSE
-MSELoss::MSELoss(ComputeGraph &graph) : L2Loss(graph), _div(L2Loss::nodeFactory().createCteDivNode(0)) {
+MSELoss::MSELoss(IComputeGraph &graph) : L2Loss(graph), _div(L2Loss::nodeFactory().createCteDivNode(0)) {
   L2Loss::createEdge(sumNode(), _div);
 }
 void MSELoss::addInput(ComputeNode &predicted, ComputeNode &trueValue) {
@@ -30,7 +30,7 @@ void MSELoss::addInput(ComputeNode &predicted, ComputeNode &trueValue) {
 }
 
 // L1Loss
-L1Loss::L1Loss(ComputeGraph &graph) : Loss(graph), _sum(Loss::nodeFactory().createAddNode()) {
+L1Loss::L1Loss(IComputeGraph &graph) : Loss(graph), _sum(Loss::nodeFactory().createAddNode()) {
 }
 
 void L1Loss::addInput(ComputeNode &predicted, ComputeNode &trueValue) {

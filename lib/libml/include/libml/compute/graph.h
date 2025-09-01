@@ -29,9 +29,11 @@ public:
   virtual unsigned int nbNodes() const = 0;
   virtual NodeFactory &nodeFactory() = 0;
   virtual void registerNode(std::unique_ptr<ComputeNode> node) = 0;
+  virtual void clearCache() = 0;
+  virtual void clearDiffHistory() = 0;
 };
 
-class ComputeGraph : public IComputeGraph {
+class ComputeGraph final : public IComputeGraph {
 public:
   ComputeGraph();
   ~ComputeGraph() override;
@@ -44,7 +46,8 @@ public:
   unsigned int nbNodes() const override;
   NodeFactory &nodeFactory() override;
   void registerNode(std::unique_ptr<ComputeNode> node) override;
-
+  void clearCache() override;
+  void clearDiffHistory() override;
 private:
   std::vector<ComputeNode *> _nodes;
   std::set<ComputeEdge> _edges;
@@ -57,6 +60,7 @@ private:
 class ComputeSubGraph : public IComputeGraph {
 public:
   explicit ComputeSubGraph(IComputeGraph &graph);
+  ~ComputeSubGraph() override;
   ComputeEdge createEdge(ComputeNode &src, ComputeNode &dst,
                          const std::optional<unsigned int> &slot = {}) override;
   void removeEdge(const ComputeEdge &edge) override;
@@ -67,6 +71,8 @@ public:
   NodeFactory &nodeFactory() override;
   void registerNode(std::unique_ptr<ComputeNode> node) override;
   IComputeGraph& baseGraph() const;
+  void clearCache() override;
+  void clearDiffHistory() override;
 private:
   IComputeGraph &_graph;
   NodeFactory _nodeFactory;
