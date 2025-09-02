@@ -1,0 +1,73 @@
+@startuml
+
+package compute {
+    struct ComputeEdge {
+        ComputeNode& src
+        ComputeNode& dst
+    }
+    interface IComputeGraph
+
+    class ComputeGraph implements IComputeGraph
+    note left
+        Only manage ComputeNodes and their memory.
+
+        Class is final.
+        end note
+
+    class ComputeSubGraph implements IComputeGraph
+    note top
+        Acts as a restricted view to a ComputeGraph.
+
+        Nodes memory is managed by the underlying graph.
+
+        Can be inherited for ease of use.
+    end note
+
+    class Slots {
+        + ComputeNode& get(int index)
+        + int get(ComputeNode& node)
+        + void set(int index, ComputeNode& node)
+    }
+    note bottom
+        Maps input index to ComputeNode reference
+        and vice versa.
+
+        Implemented using two maps.
+    end note
+
+    abstract class ComputeNode {
+        + double eval()
+        + double diff()
+        + {abstract} double pdiff(int index)
+        - {abstract} double _eval()
+    }
+    note bottom
+    This is the real graph structure implemented as a double linked tree.
+
+    Each eval and diff pass result is cached to prevent unnecessary operations
+    since they are computed during a DFS traversal.
+
+    The whole graph will clear its cache before the next eval or diff pass
+    if a node connection or constant parameter was modified.
+    end note
+
+    class NodeFactory
+    note right
+        Handle node creation and dispatch its ownership in
+        the sub graph hierarchy.
+    end note
+
+
+    ComputeEdge "*"*--"2" ComputeNode
+    ComputeSubGraph "1"*--"1" IComputeGraph
+    ComputeNode "1"*--"1" Slots : Inputs
+    ComputeNode "*"o--"*" ComputeNode : Outputs
+    Slots "*"o--"*" ComputeNode
+    ComputeGraph "1"*--"*" ComputeNode
+    ComputeSubGraph "*"o--"*" ComputeNode
+    NodeFactory "1"*--"1" IComputeGraph
+    ComputeGraph "1"*---"1" NodeFactory
+    ComputeSubGraph "1"*--"1" NodeFactory
+}
+
+@enduml

@@ -10,16 +10,16 @@ namespace Utils::Gui {
     void ShutDown();
 
     inline void SetupStyle(const bool useDarkStyle){
-        useDarkStyle ? ImGui::StyleColorsDark() : ImGui::StyleColorsLight();
+        //useDarkStyle ? ImGui::StyleColorsDark() : ImGui::StyleColorsLight();
         ImGuiStyle &style = ImGui::GetStyle();
         // Sets the border sizes and rounding.
-        style.WindowRounding = 8.0f;
-        style.ChildRounding = 8.0f;
-        style.FrameRounding = 6.0f;
-        style.PopupRounding = 6.0f;
-        style.ScrollbarRounding = 6.0f;
-        style.GrabRounding = 6.0f;
-        style.TabRounding = 6.0f;
+        style.WindowRounding = 0.0f;
+        // style.ChildRounding = 8.0f;
+        // style.FrameRounding = 6.0f;
+        // style.PopupRounding = 6.0f;
+        // style.ScrollbarRounding = 6.0f;
+        // style.GrabRounding = 6.0f;
+        // style.TabRounding = 6.0f;
     }
 
     inline void ImageFit(const Texture2D &texture){

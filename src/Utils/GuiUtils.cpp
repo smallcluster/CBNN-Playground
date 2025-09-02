@@ -5,6 +5,7 @@
 namespace Utils::Gui {
     void Setup() {
         rlImGuiSetup(true);
+        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         ImPlot::CreateContext();
         SetupStyle(true);
     }

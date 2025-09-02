@@ -1,44 +1,67 @@
 #pragma once
 
-#include "mlp.h"
+#include "libml/neural/dataset.h"
+#include "libml/neural/losses.h"
+#include "libml/neural/mlp.h"
+
+#include <memory>
 #include <random>
 #include <vector>
 
 namespace ml {
 
-
-
-class Optimizer {
+class ContinuousMean {
 public:
-  virtual ~Optimizer() = default;
-  void optimize();
-protected:
-  explicit Optimizer(MLP &mlp, DataSet& dataSet);
-  virtual InputData& nextTrainingInput() = 0;
-  virtual void _optimize() = 0;
-  MLP& _mlp;
-  DataSet& _dataSet;
+  void add(double value);
+  [[nodiscard]] double get() const;
+  [[nodiscard]] int size() const;
+
+private:
+  double _value = 0.0;
+  int _size = 0;
 };
 
-class BatchOptimizer final : Optimizer {
+class Optimizer : public ComputeSubGraph{
 public:
-  explicit BatchOptimizer(MLP &mlp, DataSet& dataSet, double learningRate = 0.01, double momentum = 0.0);
+  virtual void optimize() = 0;
 protected:
-  void _optimize() override;
-  InputData& nextTrainingInput() override;
+  explicit Optimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss);
+  void _forward();
+  void _backward() const;
+  virtual int nextTrainingIndex() = 0;
+  void setLoss(std::unique_ptr<Loss> loss);
+  MLP &_mlp;
+  DataSet &_dataSet;
+  std::unique_ptr<Loss> _loss;
+  std::vector<ComputeNode*> _trueValues;
+};
+
+class BatchOptimizer final : public Optimizer {
+public:
+  explicit BatchOptimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss,
+                          double learningRate = 0.01, double momentum = 0.0);
+  void optimize() override;
+
+protected:
+   int nextTrainingIndex() override;
+
 private:
   int _currentInput = 0;
   double _learningRate;
   double _momentum;
   std::vector<double> _velocities;
+  std::vector<ContinuousMean> _avgGradient;
 };
 
-class SGDOptimizer final : Optimizer {
+class SGDOptimizer final : public Optimizer {
 public:
-  explicit SGDOptimizer(MLP &mlp, DataSet& dataSet, double learningRate = 0.01, double momentum = 0.0, bool nesterov = false);
+  explicit SGDOptimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss, double learningRate = 0.01,
+                        double momentum = 0.0, bool nesterov = false);
+  void optimize() override;
+
 protected:
-  InputData &nextTrainingInput() override;
-  void _optimize() override;
+   int nextTrainingIndex() override;
+
 private:
   int _currentInput = 0;
   double _learningRate;

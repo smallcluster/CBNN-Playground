@@ -10,7 +10,7 @@ add_subdirectory(external)
 include_directories(${FETCHCONTENT_BASE_DIR}/effolkronium_random-src/include)
 
 # Internal libraries
-add_subdirectory(lib/libml)
+add_subdirectory(lib)
 
 add_executable(${PROJECT_NAME}
         src/main.cpp
@@ -24,15 +24,14 @@ add_executable(${PROJECT_NAME}
         # --- ML ---
         src/ML/Neuron.cpp
         src/ML/Layer.cpp
-        src/ML/MLP.cpp
-
+        #src/ML/MLP.cpp
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_EXE_LINKER_FLAGS "-static")
 endif ()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib fmt imgui implot rlimgui spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32> libml)
+target_link_libraries(${PROJECT_NAME} PUBLIC raylib fmt imgui implot rlimgui spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32> libml)
 set_target_properties(${PROJECT_NAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}
         RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}

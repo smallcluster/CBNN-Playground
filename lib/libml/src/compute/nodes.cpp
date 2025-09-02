@@ -1,72 +1,100 @@
-#include "../../include/libml/compute/nodes.h"
-
-#include "../../include/libml/compute/graph.h"
+#include "libml/compute/nodes.h"
+#include "libml/compute/graph.h"
 
 #include <cmath>
 #include <ranges>
 
 namespace ml {
 
-// BASE
-ComputeNode::ComputeNode() : ComputeNode(false) {}
-ComputeNode::ComputeNode(const bool updateGradient)
-    : _AvgGradient(updateGradient) {}
+// SLOTS
+int Slots::get(ComputeNode &node) { return _inputIndices[&node]; }
 
+ComputeNode &Slots::get(const int index) {
+  return *(_inputs[index]);
+}
+
+void Slots::set(const int index, ComputeNode &node) {
+  _inputs[index] = &node;
+  _inputIndices[&node] = index;
+}
+
+void Slots::erase(ComputeNode &node) {
+  const int index = _inputIndices[&node];
+  _inputIndices.erase(&node);
+  _inputs.erase(index);
+}
+
+void Slots::erase(const int index) {
+  ComputeNode *node = _inputs[index];
+  _inputs.erase(index);
+  _inputIndices.erase(node);
+}
+
+int Slots::size() const {
+  return static_cast<int>(_inputs.size());
+}
+std::vector<ComputeNode *> Slots::getNodes() {
+  auto v = std::ranges::views::values(_inputs);
+  return {v.begin(), v.end()};
+}
+std::vector<int> Slots::getIndices() {
+  auto v = std::ranges::views::keys(_inputs);
+  return {v.begin(), v.end()};
+}
+
+// BASE
 double ComputeNode::eval() {
+  if (_invalidateCache)
+    _clearCache();
+
   if (_cachedEval.has_value())
     return _cachedEval.value();
+
   const double r = _eval();
   _cachedEval = r;
   return r;
 }
 
 double ComputeNode::diff() {
+  if (_invalidateCache)
+    _clearCache();
 
-  // Use cached gradient
   if (_cachedGradient.has_value())
-    return _cachedGradient.value().get();
+    return _cachedGradient.value();
 
-  // If the node tracks its gradient AVG we get its previous AVG
-  // before the cache wipe
-  if (!_AvgGradient || !_previousGradient.has_value()) {
-    ContinuousMean c;
-    _cachedGradient = c;
-  } else {
-    _cachedGradient = _previousGradient;
-  }
-
-  // Compute the new gradient
   double g = 0.0;
   for (int i = 0; i < _outputs.size(); ++i)
     g += _outputs[i]->diff() *
-         _outputs[i]->_pdiff(_outputs[i]->_slots.get(*this));
+         _outputs[i]->pdiff(_outputs[i]->_slots.get(*this));
 
-  // Append it to the AVG stream
-  _cachedGradient.value() << g;
-  return _cachedGradient->get();
+  _cachedGradient = g;
+  return _cachedGradient.value();
+}
+void ComputeNode::invalidateCache() {
+  if (!_invalidateCache) {
+    _invalidateCache = true;
+
+    // propagate request to its outputs and inputs
+    for (const auto n : _outputs)
+      n->invalidateCache();
+    for (int i = 0; i < _slots.size(); ++i)
+      _slots.get(i).invalidateCache();
+  }
 }
 
-void ComputeNode::clearCache() {
-  _cachedEval = {};
-  _cachedGradient = {};
-}
-
-void ComputeNode::clearDiffHistory() {
-  _previousGradient = {};
-}
-
-void ComputeNode::connect(ComputeNode &other,
-                          const std::optional<unsigned int> &slot) {
+void ComputeNode::connect(ComputeNode &other, const std::optional<int> &slot) {
   _outputs.push_back(&other);
   if (slot.has_value()) {
     other._slots.set(slot.value(), *this);
   } else {
-    const unsigned int newSlot = other._slots.size() - 1;
+    const int newSlot = other._slots.size();
     other._slots.set(newSlot, *this);
   }
+  invalidateCache();
 }
 
 void ComputeNode::disconnect(ComputeNode &other) {
+  invalidateCache();
   _outputs.erase(std::ranges::find(_outputs, &other));
   other._slots.erase(*this);
 }
@@ -84,26 +112,25 @@ void ComputeNode::clearConnections() {
   clearOutputs();
 }
 
-ComputeNode &ComputeNode::inputAt(const unsigned int index) {
-  return _slots.get(index);
-}
-ComputeNode &ComputeNode::outputAt(const unsigned int index) const {
+ComputeNode &ComputeNode::inputAt(const int index) { return _slots.get(index); }
+ComputeNode &ComputeNode::outputAt(const int index) const {
   return *(_outputs[index]);
 }
-unsigned int ComputeNode::nbOutputs() const {
-  return static_cast<unsigned int>(_outputs.size());
-}
-unsigned int ComputeNode::nbInputs() const { return _slots.size(); }
+int ComputeNode::nbOutputs() const { return static_cast<int>(_outputs.size()); }
+int ComputeNode::nbInputs() const { return _slots.size(); }
 
+void ComputeNode::_clearCache() {
+  _cachedEval = {};
+  _cachedGradient = {};
+  _invalidateCache = false;
+}
 // IDENTITY
 const char *IdentityNode::label() { return "Id"; }
 double IdentityNode::_eval() { return inputAt(0).eval(); }
-double IdentityNode::_pdiff(const unsigned int index) { return 1.0; }
+double IdentityNode::pdiff(const int index) { return 1.0; }
 
 // CONSTANT
-ConstantNode::ConstantNode(const double value, const bool avgGradient,
-                           const std::string &label)
-    : ComputeNode(avgGradient) {
+ConstantNode::ConstantNode(const double value, const std::string &label) {
   _value = value;
   _label = label;
 }
@@ -112,10 +139,13 @@ const char *ConstantNode::label() {
     return std::to_string(_value).c_str();
   return _label.c_str();
 }
-void ConstantNode::set(const double value) { _value = value; }
+void ConstantNode::set(const double value) {
+  _value = value;
+  invalidateCache();
+}
 void ConstantNode::setLabel(const std::string &label) { _label = label; }
 double ConstantNode::_eval() { return _value; }
-double ConstantNode::_pdiff(const unsigned int index) { return 0.0; }
+double ConstantNode::pdiff(const int index) { return 0.0; }
 
 // MULTIPLICATION
 const char *MultNode::label() { return "*"; }
@@ -125,7 +155,7 @@ double MultNode::_eval() {
     r *= inputAt(i).eval();
   return r;
 }
-double MultNode::_pdiff(const unsigned int index) {
+double MultNode::pdiff(const int index) {
   double r = 1.0;
   for (int i = 0; i < nbInputs(); ++i)
     if (i != index)
@@ -133,46 +163,48 @@ double MultNode::_pdiff(const unsigned int index) {
   return r;
 }
 
-CteMultNode::CteMultNode(const double cte) : ComputeNode(false) { _cte = cte; }
+CteMultNode::CteMultNode(const double cte) : _cte(cte) {}
 const char *CteMultNode::label() {
   return ("*" + std::to_string(_cte)).c_str();
 }
-void CteMultNode::setCte(const double cte) { _cte = cte; }
+void CteMultNode::setCte(const double cte) {
+  _cte = cte;
+  invalidateCache();
+}
 double CteMultNode::getCte() const { return _cte; }
 double CteMultNode::_eval() { return inputAt(0).eval() * _cte; }
-double CteMultNode::_pdiff(const unsigned int index) { return _cte; }
+double CteMultNode::pdiff(const int index) { return _cte; }
 
 // DIVISION
 const char *DivideNode::label() { return "/"; }
 double DivideNode::_eval() { return inputAt(0).eval() / inputAt(1).eval(); }
-double DivideNode::_pdiff(const unsigned int index) {
+double DivideNode::pdiff(const int index) {
   const double x = inputAt(1).eval();
   if (index == 0)
     return 1.0 / x;
   return -inputAt(0).eval() / (x * x);
 }
 
-CteDivideNode::CteDivideNode(const double cte) : ComputeNode(false) {
-  _cte = cte;
-}
+CteDivideNode::CteDivideNode(const double cte) : _cte(cte) {}
 const char *CteDivideNode::label() {
   return ("/" + std::to_string(_cte)).c_str();
 }
-void CteDivideNode::setCte(const double cte) { _cte = cte; }
+void CteDivideNode::setCte(const double cte) {
+  _cte = cte;
+  invalidateCache();
+}
 double CteDivideNode::getCte() const { return _cte; }
 double CteDivideNode::_eval() { return inputAt(0).eval() / _cte; }
-double CteDivideNode::_pdiff(const unsigned int index) { return 1.0 / _cte; }
+double CteDivideNode::pdiff(const int index) { return 1.0 / _cte; }
 
 // SUBSTRACTION
 const char *SubNode::label() { return "-"; }
 double SubNode::_eval() { return inputAt(0).eval() - inputAt(1).eval(); }
-double SubNode::_pdiff(const unsigned int index) {
-  return index == 0 ? 1.0 : -1.0;
-}
+double SubNode::pdiff(const int index) { return index == 0 ? 1.0 : -1.0; }
 
 const char *UnarySubNode::label() { return "-"; }
 double UnarySubNode::_eval() { return -inputAt(0).eval(); }
-double UnarySubNode::_pdiff(const unsigned int index) { return -1.0; }
+double UnarySubNode::pdiff(const int index) { return -1.0; }
 
 // ADDITION
 const char *AddNode::label() { return "+"; }
@@ -182,18 +214,18 @@ double AddNode::_eval() {
     r += inputAt(i).eval();
   return r;
 }
-double AddNode::_pdiff(const unsigned int index) { return 1.0; }
+double AddNode::pdiff(const int index) { return 1.0; }
 
 // ACTIVATION FUNCTIONS
 const char *ReLUNode::label() { return "ReLU"; }
 double ReLUNode::_eval() { return std::max(0.0, inputAt(0).eval()); }
-double ReLUNode::_pdiff(const unsigned int index) {
+double ReLUNode::pdiff(const int index) {
   return inputAt(0).eval() <= 0 ? 0.0 : 1.0;
 }
 
 const char *SigmoidNode::label() { return "Sigmoid"; }
 double SigmoidNode::_eval() { return 1.0 / (1 + std::exp(-inputAt(0).eval())); }
-double SigmoidNode::_pdiff(const unsigned int index) {
+double SigmoidNode::pdiff(const int index) {
   const double v = eval();
   return v * (1.0 - v);
 }
@@ -202,13 +234,14 @@ double SigmoidNode::_pdiff(const unsigned int index) {
 const char *CtePowerNode::label() {
   return ("^" + std::to_string(_power)).c_str();
 }
-CtePowerNode::CtePowerNode(const int power) : ComputeNode(false) {
-  _power = power;
-}
+CtePowerNode::CtePowerNode(const int power) : _power(power) {}
 int CtePowerNode::getPower() const { return _power; }
-void CtePowerNode::setPower(const int power) { _power = power; }
+void CtePowerNode::setPower(const int power) {
+  _power = power;
+  invalidateCache();
+}
 double CtePowerNode::_eval() { return std::pow(inputAt(0).eval(), _power); }
-double CtePowerNode::_pdiff(const unsigned int index) {
+double CtePowerNode::pdiff(const int index) {
   return _power * std::pow(inputAt(0).eval(), _power - 1);
 }
 
@@ -216,7 +249,7 @@ const char *PowerNode::label() { return "^"; }
 double PowerNode::_eval() {
   return std::pow(inputAt(0).eval(), inputAt(1).eval());
 }
-double PowerNode::_pdiff(const unsigned int index) {
+double PowerNode::pdiff(const int index) {
   if (index == 0)
     return inputAt(1).eval() *
            std::pow(inputAt(0).eval(), inputAt(1).eval() - 1);
@@ -227,21 +260,17 @@ double PowerNode::_pdiff(const unsigned int index) {
 // EXP
 const char *ExpNode::label() { return "exp"; }
 double ExpNode::_eval() { return std::exp(inputAt(0).eval()); }
-double ExpNode::_pdiff(const unsigned int index) {
-  return std::exp(inputAt(0).eval());
-}
+double ExpNode::pdiff(const int index) { return std::exp(inputAt(0).eval()); }
 
 // LN
 const char *LnNode::label() { return "ln"; }
 double LnNode::_eval() { return std::log(inputAt(0).eval()); }
-double LnNode::_pdiff(const unsigned int index) {
-  return 1.0 / inputAt(0).eval();
-}
+double LnNode::pdiff(const int index) { return 1.0 / inputAt(0).eval(); }
 
 // ABS
 const char *AbsNode::label() { return "abs"; }
 double AbsNode::_eval() { return std::abs(inputAt(0).eval()); }
-double AbsNode::_pdiff(const unsigned int index) {
+double AbsNode::pdiff(const int index) {
   const double v = inputAt(0).eval();
   if (v == 0.0)
     return 0.0;
@@ -251,23 +280,21 @@ double AbsNode::_pdiff(const unsigned int index) {
 // 1/x
 const char *InvertNode::label() { return "1/x"; }
 double InvertNode::_eval() { return 1.0 / inputAt(0).eval(); }
-double InvertNode::_pdiff(const unsigned int index) {
+double InvertNode::pdiff(const int index) {
   const double v = inputAt(0).eval();
   return -1.0 / (v * v);
 }
 
 // AVG
-const char *AvgNode::label() {return "AVG";}
+const char *AvgNode::label() { return "AVG"; }
 double AvgNode::_eval() {
   double avg = 0;
-  const unsigned int n = nbInputs();
-  for (int i=0; i < n; ++i)
+  const int n = nbInputs();
+  for (int i = 0; i < n; ++i)
     avg += inputAt(i).eval();
   return avg / n;
 }
-double AvgNode::_pdiff(const unsigned int index) {
-  return 1.0 / nbInputs();
-}
+double AvgNode::pdiff(const int index) { return 1.0 / nbInputs(); }
 
 // NODE FACTORY
 NodeFactory::NodeFactory(IComputeGraph &graph) : _graph(graph) {}
@@ -279,9 +306,8 @@ IdentityNode &NodeFactory::createIdentityNode() const {
   return *ptr;
 }
 
-ConstantNode &NodeFactory::createConstantNode(const double value,
-                                              const bool updateGradient) const {
-  auto n = std::make_unique<ConstantNode>(value, updateGradient);
+ConstantNode &NodeFactory::createConstantNode(const double value) const {
+  auto n = std::make_unique<ConstantNode>(value);
   const auto ptr = n.get();
   _graph.registerNode(std::move(n));
   return *ptr;

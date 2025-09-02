@@ -1,20 +1,38 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 project(libml VERSION 0.0.1 LANGUAGES CXX)
 
-add_library(${PROJECT_NAME} STATIC
+set(HEADERS
         # Compute graphs
-        src/compute/utils.cpp
+        include/libml/compute/graph.h
+        include/libml/compute/nodes.h
+        # Neural networks
+        include/libml/neural/activations.h
+        include/libml/neural/aggregations.h
+        include/libml/neural/dataset.h
+        include/libml/neural/layers.h
+        include/libml/neural/losses.h
+        include/libml/neural/mlp.h
+        include/libml/neural/neuron.h
+        include/libml/neural/optimizers.h
+)
+
+set(SRCS
+        # Compute graphs
         src/compute/nodes.cpp
         src/compute/graph.cpp
-        # Generic
-        src/losses.cpp
-        src/dataset.cpp
         # Neural networks
-        src/neural/mlp.cpp
+        src/neural/dataset.cpp
+        src/neural/activations.cpp
+        src/neural/aggregations.cpp
         src/neural/neuron.cpp
+        src/neural/layers.cpp
+        src/neural/mlp.cpp
         src/neural/optimizers.cpp
+        src/neural/losses.cpp
 )
+
+add_library(${PROJECT_NAME} STATIC ${SRCS} ${HEADERS})
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC

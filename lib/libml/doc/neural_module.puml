@@ -1,0 +1,39 @@
+@startuml
+
+abstract class Loss extends compute.ComputeSubGraph
+
+class InputData
+class DataSet
+
+DataSet "1"*--"*" InputData
+
+
+package compute{
+    class ComputeSubGraph
+}
+package neural {
+    class MLP extends compute.ComputeSubGraph
+    abstract class Aggregation extends compute.ComputeSubGraph
+    abstract class Activation extends compute.ComputeSubGraph
+    class Neuron extends compute.ComputeSubGraph
+    abstract class Layer extends compute.ComputeSubGraph
+    class LayerBuilder
+    abstract class Optimizer {
+        {abstract} + optimize()
+    }
+    note top
+        A call to **optimize()** performs exactly
+        ONE gradient update.
+    end note
+
+    MLP "1"-->"1..*" LayerBuilder : "During init"
+    MLP "1"*--"1..*" Layer
+    MLP "1"*--"1" Loss
+    Neuron "1"*--"1" Aggregation
+    Neuron "1"*--"1" Activation
+    Optimizer "1"o--"1" MLP
+    Layer "1"*--"1..*" Neuron
+    Optimizer "*"o--"1" DataSet
+}
+
+@enduml

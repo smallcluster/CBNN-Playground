@@ -17,17 +17,13 @@ frame ml {
     frame compute {
         node Graph
         node Nodes
-        node Utils
     }
 }
 Optimizers --> DataSet
 Optimizers --> MLP
 MLP --> Loss
 MLP --> Neuron
-
 Graph --> Nodes
-Nodes --> Utils
-
 Loss --> Graph
 Neuron --> Graph
 

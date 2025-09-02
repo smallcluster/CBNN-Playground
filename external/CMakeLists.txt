@@ -51,13 +51,13 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(effolkronium_random)
 
 
-# imgui
+# imgui docking
 find_package(imgui QUIET)
 if (NOT imgui_FOUND)
     FetchContent_Declare(
             imgui
             GIT_REPOSITORY https://github.com/ocornut/imgui.git
-            GIT_TAG v1.92.0
+            GIT_TAG docking
             GIT_SHALLOW 1
     )
     FetchContent_MakeAvailable(imgui)
