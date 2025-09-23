@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 
   std::unique_ptr<ml::Optimizer> optimizer = std::make_unique<ml::BatchOptimizer>(mlp, d, std::make_unique<ml::MSELoss>(g));
 
-  optimizer->optimize();
+  //optimizer->optimize();
 
 
   SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_RESIZABLE);
@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
   Utils::Gui::Setup();
 
   Viewport2D modelViewport(2,2);
+  Viewport2D computeViewport(2,2);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
@@ -109,35 +110,50 @@ int main(int argc, char *argv[]) {
     ImGui::DockSpaceOverViewport(dockspace_id);
 
 
-    ImGui::Begin("Model view");
-    modelViewport.updateSize(ImGuiContentWidth(), ImGuiContentHeight());
-    BeginTextureMode(modelViewport.target());
+    if (ImGui::Begin("Model view")) {
+      modelViewport.updateSize(ImGuiContentWidth(), ImGuiContentHeight());
+      BeginTextureMode(modelViewport.target());
+        ClearBackground(WHITE);
+        DrawCircle(modelViewport.width()/2, modelViewport.height()/2, std::min(modelViewport.width(), modelViewport.height())/4, RED);
+      EndTextureMode();
+      rlImGuiImage(&modelViewport.texture());
+    }
+    ImGui::End();
+
+
+    if (ImGui::Begin("Compute graph view")) {
+      computeViewport.updateSize(ImGuiContentWidth(), ImGuiContentHeight());
+      BeginTextureMode(computeViewport.target());
       ClearBackground(WHITE);
-      DrawCircle(modelViewport.width()/2, modelViewport.height()/2, std::min(modelViewport.width(), modelViewport.height())/4, RED);
-    EndTextureMode();
-    rlImGuiImage(&modelViewport.texture());
+      DrawCircle(computeViewport.width()/2, computeViewport.height()/2, std::min(computeViewport.width(), computeViewport.height())/4, BLUE);
+      EndTextureMode();
+      rlImGuiImage(&computeViewport.texture());
+    }
     ImGui::End();
 
-    ImGui::Begin("Compute graph view");
+    if(ImGui::Begin("Input preview")){
+    }
     ImGui::End();
 
-    ImGui::Begin("Input preview");
+    if(ImGui::Begin("Output preview")){
+    }
     ImGui::End();
 
-    ImGui::Begin("Output preview");
+    if(ImGui::Begin("Model builder")){
+    }
     ImGui::End();
 
-    ImGui::Begin("Model builder");
+    if(ImGui::Begin("Training settings")){
+    }
     ImGui::End();
 
-    ImGui::Begin("Training settings");
+    if(ImGui::Begin("Model training infos")){
+    }
     ImGui::End();
 
-    ImGui::Begin("Model training infos");
-    ImGui::End();
-
-    ImGui::Begin("Debug");
-    ImGui::Text(fmt::format("Frame time: {:.2}ms", GetFrameTime() * 1000.0f).c_str());
+    if(ImGui::Begin("Debug")){
+      ImGui::Text(fmt::format("Frame time: {:.2}ms", GetFrameTime() * 1000.0f).c_str());
+    }
     ImGui::End();
 
 

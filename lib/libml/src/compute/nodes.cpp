@@ -10,7 +10,7 @@ namespace ml {
 int Slots::get(ComputeNode &node) { return _inputIndices[&node]; }
 
 ComputeNode &Slots::get(const int index) {
-  return *(_inputs[index]);
+  return *_inputs[index];
 }
 
 void Slots::set(const int index, ComputeNode &node) {
@@ -63,9 +63,9 @@ double ComputeNode::diff() {
     return _cachedGradient.value();
 
   double g = 0.0;
-  for (int i = 0; i < _outputs.size(); ++i)
-    g += _outputs[i]->diff() *
-         _outputs[i]->pdiff(_outputs[i]->_slots.get(*this));
+  for (const auto & _output : _outputs)
+    g += _output->diff() *
+         _output->pdiff(_output->_slots.get(*this));
 
   _cachedGradient = g;
   return _cachedGradient.value();
@@ -114,7 +114,7 @@ void ComputeNode::clearConnections() {
 
 ComputeNode &ComputeNode::inputAt(const int index) { return _slots.get(index); }
 ComputeNode &ComputeNode::outputAt(const int index) const {
-  return *(_outputs[index]);
+  return *_outputs[index];
 }
 int ComputeNode::nbOutputs() const { return static_cast<int>(_outputs.size()); }
 int ComputeNode::nbInputs() const { return _slots.size(); }

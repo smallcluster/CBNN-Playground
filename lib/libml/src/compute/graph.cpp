@@ -3,7 +3,7 @@
 namespace ml {
 
 bool ComputeEdge::operator<(const ComputeEdge &other) const {
-  return (&src < &(other.src)) || (&src == &(other.src) && (&dst < &(other.dst)));
+  return &src < &other.src || (&src == &other.src && &dst < &other.dst);
 }
 
 ComputeGraph::ComputeGraph() : _nodeFactory(*this) {}
@@ -31,7 +31,7 @@ void ComputeGraph::removeNode(ComputeNode &node) {
   node.clearConnections();
   std::set<ComputeEdge> toRemove;
   for (auto e : _edges)
-    if (&(e.src) == &node || &(e.dst) == &node)
+    if (&e.src == &node || &e.dst == &node)
       toRemove.insert(e);
   for (auto e : toRemove)
     _edges.erase(e);
@@ -75,7 +75,7 @@ std::set<ComputeEdge> &ComputeSubGraph::getEdges() { return _edges; }
 void ComputeSubGraph::removeNode(ComputeNode &node) {
   std::set<ComputeEdge> toRemove;
   for (auto e : _edges)
-    if (&(e.src) == &node || &(e.dst) == &node)
+    if (&e.src == &node || &e.dst == &node)
       toRemove.insert(e);
   for (auto e : toRemove)
     removeEdge(e);
@@ -84,7 +84,7 @@ void ComputeSubGraph::removeNode(ComputeNode &node) {
   _graph.removeNode(node);
 }
 ComputeNode &ComputeSubGraph::nodeAt(const int index) const {
-  return *(_nodes[index]);
+  return *_nodes[index];
 }
 int ComputeSubGraph::nbNodes() const {
   return static_cast<int>(_nodes.size());

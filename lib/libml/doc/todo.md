@@ -1,0 +1,2 @@
+- [ ] unit tests
+- [ ] random weight initialization
