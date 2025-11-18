@@ -1,10 +1,14 @@
 #pragma once
 
+#include "libmath/math.h"
+
+#include <vector>
+
 namespace verlet {
 
     struct Node {
-        Vector2 position = {0,0};
-        Vector2 oldPosition = {0,0};
+        math::Vec2 position = {0,0};
+        math::Vec2 oldPosition = {0,0};
         float radius = 16.0;
         float mass = 1.0f;
         bool pinned = false;
@@ -13,15 +17,18 @@ namespace verlet {
     class IConstraint {
     public:
         virtual void solve(double dt) = 0;
+        virtual ~IConstraint() = 0;
     };
 
     class DistanceConstraint final : public IConstraint {
-        Node* _src;
-        Node* _dst;
+        Node& _src;
+        Node& _dst;
         float _restLength;
     public:
-        DistanceConstraint(const Node* n1, const Node* n2);
+        DistanceConstraint(Node& n1, Node& n2);
+        DistanceConstraint(Node& n1, Node& n2, float restLength);
         void solve(double dt) override;
+        ~DistanceConstraint() = default;
     };
 
 
@@ -33,10 +40,8 @@ namespace verlet {
         int _constraintSteps = 10;
     public:
         World();
-        explicit World(const Graph::ISimpleGraph& graph);
         void update();
         ~World();
     };
 
 }
-
