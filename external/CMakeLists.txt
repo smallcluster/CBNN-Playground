@@ -4,6 +4,19 @@ include(FetchContent)
 
 add_compile_definitions(ImDrawIdx=unsigned\ int)
 
+
+# tinyfiledialogs
+find_package(tinyfiledialogs QUIET)
+if (NOT raylib_FOUND)
+    FetchContent_Declare(
+        tinyfiledialogs
+            GIT_REPOSITORY https://github.com/D31m05z/tinyfiledialogs.git
+            GIT_SHALLOW 1
+    )
+    FetchContent_MakeAvailable(tinyfiledialogs)
+endif ()
+
+
 # raylib
 find_package(raylib QUIET)
 if (NOT raylib_FOUND)

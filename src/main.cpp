@@ -1,15 +1,23 @@
 #include <cmath>
 
+#include "fmt/base.h"
+#include "tinyfiledialogs/tinyfiledialogs.h"
+#include <cstddef>
+#include <cstdlib>
+#include <optional>
+#include <stdio.h>
+#include <string.h>
+
 #include "fmt/format.h"
-#include "raylib.h"
 #include "imgui.h"
 #include "implot.h"
+#include "raylib.h"
 #include "rlImGui.h"
 
-#include "libml/neural/dataset.h"
-#include "libml/neural/losses.h"
 #include "libml/compute/graph.h"
+#include "libml/neural/dataset.h"
 #include "libml/neural/layers.h"
+#include "libml/neural/losses.h"
 #include "libml/neural/mlp.h"
 #include "libml/neural/optimizers.h"
 
@@ -29,10 +37,9 @@ int ImGuiContentHeight() {
 
 class Viewport2D {
 public:
-  Viewport2D(const int width, const int height) : _target(LoadRenderTexture(width, height)){}
-  ~Viewport2D() {
-    UnloadRenderTexture(_target);
-  }
+  Viewport2D(const int width, const int height)
+      : _target(LoadRenderTexture(width, height)) {}
+  ~Viewport2D() { UnloadRenderTexture(_target); }
   void updateSize(const int width, const int height) {
     const int newWidth = width < 2 ? 2 : width;
     const int newHeight = height < 2 ? 2 : height;
@@ -41,45 +48,42 @@ public:
       _target = LoadRenderTexture(newWidth, newHeight);
     }
   }
-  RenderTexture2D& target() { return _target;}
-  Texture& texture() {return _target.texture;}
-  int width() const {return _target.texture.width;}
-  int height() const {return _target.texture.height;}
+  RenderTexture2D &target() { return _target; }
+  Texture &texture() { return _target.texture; }
+  int width() const { return _target.texture.width; }
+  int height() const { return _target.texture.height; }
+
 private:
   RenderTexture2D _target;
 };
 
-
 int main(int argc, char *argv[]) {
+
+  std::optional<Texture2D> inputImage;
 
   ml::ComputeGraph g;
 
-  ml::DataSet d({2,{
-    0.1, 0.1,
-    0.5, 0.5}},
-    {3,{
-        0.5, 0.5, 0.5,
-        0.1, 0.2, 1.0}});
+  ml::DataSet d({2, {0.1, 0.1, 0.5, 0.5}}, {3, {0.5, 0.5, 0.5, 0.1, 0.2, 1.0}});
 
-  ml::MLP mlp(g, {
-    ml::LayerBuilder(2, ml::LayerBuilder::Type::Identity, false),
-    ml::LayerBuilder(12, ml::LayerBuilder::Type::ReLu, true),
-    ml::LayerBuilder(12, ml::LayerBuilder::Type::ReLu, true),
-    ml::LayerBuilder(3, ml::LayerBuilder::Type::Identity, true)
-  });
+  ml::MLP mlp(g, {ml::LayerBuilder(2, ml::LayerBuilder::Type::Identity, false),
+                  ml::LayerBuilder(12, ml::LayerBuilder::Type::ReLu, true),
+                  ml::LayerBuilder(12, ml::LayerBuilder::Type::ReLu, true),
+                  ml::LayerBuilder(3, ml::LayerBuilder::Type::Identity, true)});
 
-  std::unique_ptr<ml::Optimizer> optimizer = std::make_unique<ml::BatchOptimizer>(mlp, d, std::make_unique<ml::MSELoss>(g));
+  std::unique_ptr<ml::Optimizer> optimizer =
+      std::make_unique<ml::BatchOptimizer>(mlp, d,
+                                           std::make_unique<ml::MSELoss>(g));
 
-  //optimizer->optimize();
+  // optimizer->optimize();
 
-
-  SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_RESIZABLE);
+  SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_ALWAYS_RUN |
+                 FLAG_WINDOW_RESIZABLE);
   InitWindow(1920, 1080, "CBNN Playground");
   SetTargetFPS(60);
   Utils::Gui::Setup();
 
-  Viewport2D modelViewport(2,2);
-  Viewport2D computeViewport(2,2);
+  Viewport2D modelViewport(2, 2);
+  Viewport2D computeViewport(2, 2);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
@@ -109,53 +113,84 @@ int main(int argc, char *argv[]) {
     ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
     ImGui::DockSpaceOverViewport(dockspace_id);
 
-
     if (ImGui::Begin("Model view")) {
       modelViewport.updateSize(ImGuiContentWidth(), ImGuiContentHeight());
       BeginTextureMode(modelViewport.target());
-        ClearBackground(WHITE);
-        DrawCircle(modelViewport.width()/2, modelViewport.height()/2, std::min(modelViewport.width(), modelViewport.height())/4, RED);
+      ClearBackground(WHITE);
+      DrawCircle(modelViewport.width() / 2, modelViewport.height() / 2,
+                 std::min(modelViewport.width(), modelViewport.height()) / 4,
+                 RED);
       EndTextureMode();
       rlImGuiImage(&modelViewport.texture());
     }
     ImGui::End();
 
-
     if (ImGui::Begin("Compute graph view")) {
       computeViewport.updateSize(ImGuiContentWidth(), ImGuiContentHeight());
       BeginTextureMode(computeViewport.target());
       ClearBackground(WHITE);
-      DrawCircle(computeViewport.width()/2, computeViewport.height()/2, std::min(computeViewport.width(), computeViewport.height())/4, BLUE);
+      DrawCircle(computeViewport.width() / 2, computeViewport.height() / 2,
+                 std::min(computeViewport.width(), computeViewport.height()) /
+                     4,
+                 BLUE);
       EndTextureMode();
       rlImGuiImage(&computeViewport.texture());
     }
     ImGui::End();
 
-    if(ImGui::Begin("Input preview")){
+    if (ImGui::Begin("Training Input")) {
+
+      if(inputImage.has_value()){
+        Utils::Gui::ImageFit(inputImage.value());
+        if(ImGui::CollapsingHeader("Image infos")){
+          ImGui::LabelText("Dimensions", "%dx%d px", inputImage->width, inputImage->height);
+          ImGui::Separator();
+          ImGui::LabelText("Pixels", "%d", inputImage->width*inputImage->height);
+        }
+      }
+
+      if (ImGui::Button("LOAD", ImVec2(ImGuiContentWidth(), 0))) {
+        const char *path = tinyfd_openFileDialog("Image", "", 0, NULL, NULL, 0);
+        if (path) {
+          fmt::println("{}", path);
+          if(inputImage.has_value())
+            UnloadTexture(inputImage.value());
+          inputImage = LoadTexture(path);
+        }
+      }
+
+      if(inputImage.has_value()){
+        if (ImGui::Button("REMOVE", ImVec2(ImGuiContentWidth(), 0))) {
+          UnloadTexture(inputImage.value());
+          inputImage = {};
+        }
+      }
+
+
     }
     ImGui::End();
 
-    if(ImGui::Begin("Output preview")){
+    if (ImGui::Begin("Output preview")) {
     }
     ImGui::End();
 
-    if(ImGui::Begin("Model builder")){
+    if (ImGui::Begin("Model builder")) {
     }
     ImGui::End();
 
-    if(ImGui::Begin("Training settings")){
+    if (ImGui::Begin("Training settings")) {
     }
     ImGui::End();
 
-    if(ImGui::Begin("Model training infos")){
+    if (ImGui::Begin("Model training infos")) {
     }
     ImGui::End();
 
-    if(ImGui::Begin("Debug")){
-      ImGui::Text(fmt::format("Frame time: {:.2}ms", GetFrameTime() * 1000.0f).c_str());
+    if (ImGui::Begin("Debug")) {
+      ImGui::Text(
+          fmt::format("Frame time: {:.2}ms", GetFrameTime() * 1000.0f).c_str());
     }
     ImGui::End();
-
 
     rlImGuiEnd();
     EndDrawing();
