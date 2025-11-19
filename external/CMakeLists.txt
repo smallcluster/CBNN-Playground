@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 4.0)
 
 include(FetchContent)
 
@@ -7,53 +7,54 @@ add_compile_definitions(ImDrawIdx=unsigned\ int)
 
 # tinyfiledialogs
 find_package(tinyfiledialogs QUIET)
-if (NOT raylib_FOUND)
-    FetchContent_Declare(
+if (NOT tinyfiledialogs_FOUND)
+  FetchContent_Declare(
         tinyfiledialogs
             GIT_REPOSITORY https://github.com/D31m05z/tinyfiledialogs.git
             GIT_SHALLOW 1
     )
-    FetchContent_MakeAvailable(tinyfiledialogs)
+  FetchContent_MakeAvailable(tinyfiledialogs)
 endif ()
-
 
 # raylib
 find_package(raylib QUIET)
 if (NOT raylib_FOUND)
-    FetchContent_Declare(
+  FetchContent_Declare(
             raylib
             SOURCE_DIR raylib
             GIT_REPOSITORY https://github.com/raysan5/raylib.git
             GIT_TAG 5.5
             GIT_SHALLOW 1
     )
-    FetchContent_MakeAvailable(raylib)
+  FetchContent_MakeAvailable(raylib)
 endif ()
 
 # fmt
 find_package(fmt QUIET)
 if (NOT fmt_FOUND)
-    FetchContent_Declare(
+  FetchContent_Declare(
             fmt
             GIT_REPOSITORY https://github.com/fmtlib/fmt.git
             GIT_TAG 11.2.0
             GIT_SHALLOW 1
     )
-    FetchContent_MakeAvailable(fmt)
+  FetchContent_MakeAvailable(fmt)
 endif ()
 
+# TODO: Remove this dependency and use the std lib instead
 # spdlog
 find_package(spdlog QUIET)
 if (NOT spdlog_FOUND)
-    FetchContent_Declare(
+  FetchContent_Declare(
             spdlog
             GIT_REPOSITORY https://github.com/gabime/spdlog.git
             GIT_TAG v1.15.3
             GIT_SHALLOW 1
     )
-    FetchContent_MakeAvailable(spdlog)
+  FetchContent_MakeAvailable(spdlog)
 endif ()
 
+# TODO: Remove this dependency to use the std
 # effolkronium_random
 FetchContent_Declare(
         effolkronium_random
@@ -67,13 +68,13 @@ FetchContent_MakeAvailable(effolkronium_random)
 # imgui docking
 find_package(imgui QUIET)
 if (NOT imgui_FOUND)
-    FetchContent_Declare(
+  FetchContent_Declare(
             imgui
             GIT_REPOSITORY https://github.com/ocornut/imgui.git
             GIT_TAG docking
             GIT_SHALLOW 1
     )
-    FetchContent_MakeAvailable(imgui)
+  FetchContent_MakeAvailable(imgui)
 endif ()
 
 set(IMGUI_PATH  ${FETCHCONTENT_BASE_DIR}/imgui-src)
@@ -84,13 +85,13 @@ target_include_directories(imgui PUBLIC ${IMGUI_PATH})
 # implot
 find_package(implot QUIET)
 if (NOT implot_FOUND)
-    FetchContent_Declare(
+  FetchContent_Declare(
             implot
             GIT_REPOSITORY https://github.com/epezent/implot.git
             GIT_TAG master
             GIT_SHALLOW 1
     )
-    FetchContent_MakeAvailable(implot)
+  FetchContent_MakeAvailable(implot)
 endif ()
 
 set(IMPLOT_PATH  ${FETCHCONTENT_BASE_DIR}/implot-src)
@@ -102,13 +103,13 @@ target_link_libraries(implot PRIVATE imgui)
 # rlimgui
 find_package(rlimgui QUIET)
 if (NOT rlimgui_FOUND)
-    FetchContent_Declare(
+  FetchContent_Declare(
             rlimgui
             GIT_REPOSITORY https://github.com/raylib-extras/rlImGui.git
             GIT_TAG main
             GIT_SHALLOW 1
     )
-    FetchContent_MakeAvailable(rlimgui)
+  FetchContent_MakeAvailable(rlimgui)
 endif ()
 
 set(RLIMGUI_PATH  ${FETCHCONTENT_BASE_DIR}/rlimgui-src)
@@ -116,3 +117,6 @@ file(GLOB RLIMGUI_SOURCES ${RLIMGUI_PATH}/*.cpp)
 add_library(rlimgui STATIC ${RLIMGUI_SOURCES})
 target_include_directories(rlimgui PUBLIC ${RLIMGUI_PATH})
 target_link_libraries(rlimgui PRIVATE raylib imgui)
+
+# stb_image
+add_subdirectory(stb)
