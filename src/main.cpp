@@ -64,6 +64,7 @@ struct ApplicationState {
   std::optional<Texture2D> inputImage;
   bool isInTraining;
   bool isModelReady;
+  bool autoEvalDuringTraining;
   int outputWidth;
   int outputHeight;
   Texture2D outputImage;
@@ -73,12 +74,66 @@ struct ApplicationState {
 void appStateInit(ApplicationState& s){
   s.isInTraining = false;
   s.isModelReady = false;
+  s.autoEvalDuringTraining = false;
   s.outputWidth = 2;
   s.outputHeight = 2;
   Image img = GenImageColor(s.outputWidth, s.outputHeight, BLACK);
   s.outputImage = LoadTextureFromImage(img);
   UnloadImage(img);
 }
+
+void loadInputImage(const std::string& path, ApplicationState& s){
+  // Clear textures memory
+  if(s.inputImage.has_value())
+    UnloadTexture(s.inputImage.value());
+  if(s.trainingOutputImage.has_value())
+    UnloadTexture(s.trainingOutputImage.value());
+  // Create textures based on loaded image
+  s.inputImage = LoadTexture(path.c_str());
+  Image img = GenImageColor(s.inputImage->width, s.inputImage->height, BLACK);
+  s.trainingOutputImage = LoadTextureFromImage(img);
+  UnloadImage(img);
+}
+
+std::optional<std::string> openPngFile(){
+  const char* pngPattern = "*.png";
+  std::array<const char*, 1> patterns = {pngPattern};
+  const char* path = tinyfd_openFileDialog("Save Image", "", patterns.size(), patterns.data(), NULL, 0);
+  if(path)
+    return std::string(path);
+  return {};
+}
+
+std::optional<std::string> savePngFile(){
+  const char* pngPattern = "*.png";
+  std::array<const char*, 1> patterns = {pngPattern};
+  const char* path = tinyfd_saveFileDialog("Save Image", "", patterns.size(), patterns.data(), NULL);
+  if(path){
+    std::string finalpath{path};
+    if (!finalpath.ends_with(".png"))
+      finalpath += ".png";
+    return finalpath;
+  }
+  return {};
+}
+
+void writePngFromTexture(const std::string& path, Texture2D& t){
+  const int channels = 3;
+  std::vector<uint8_t> data(t.width*t.height*channels);
+  Image img = LoadImageFromTexture(t);
+  Color * colors = LoadImageColors(img);
+  for(int i=0; i<t.width*t.height; ++i){
+    Color c = colors[i];
+    data[i*channels] = c.r;
+    data[i*channels+1] = c.g;
+    data[i*channels+2] = c.b;
+  }
+  UnloadImageColors(colors);
+  UnloadImage(img);
+  stbi_write_png(path.c_str(), t.width, t.height, channels, data.data(), t.width*sizeof(uint8_t));
+}
+
+
 
 int main(int argc, char *argv[]) {
 
@@ -167,18 +222,9 @@ int main(int argc, char *argv[]) {
     if (ImGui::Begin("Training Image")) {
 
       if (ImGui::Button("Load", ImVec2(ImGuiContentWidth(), 0))) {
-        const char *path = tinyfd_openFileDialog("Image", "", 0, NULL, NULL, 0);
-        if (path) {
-          fmt::println("{}", path);
-          if(appState.inputImage.has_value())
-            UnloadTexture(appState.inputImage.value());
-          if(appState.trainingOutputImage.has_value())
-            UnloadTexture(appState.trainingOutputImage.value());
-          appState.inputImage = LoadTexture(path);
-          Image img = GenImageColor(appState.inputImage->width, appState.inputImage->height, BLACK);
-          appState.trainingOutputImage = LoadTextureFromImage(img);
-          UnloadImage(img);
-        }
+        std::optional<std::string> path = openPngFile();
+        if (path.has_value())
+          loadInputImage(path.value(), appState);
       }
 
       if(appState.inputImage.has_value()){
@@ -203,44 +249,31 @@ int main(int argc, char *argv[]) {
     if(ImGui::Begin("Training Preview")){
       if(appState.trainingOutputImage.has_value()){
         Utils::Gui::ImageFit(appState.trainingOutputImage.value());
+      } else {
+        ImGui::TextColored({1, 0, 0, 1}, "NO INPUT IMAGE");
       }
     }
     ImGui::End();
 
     if (ImGui::Begin("Model Eval")) {
 
-      if(ImGui::Button("Save", ImVec2(ImGuiContentWidth(), 0))){
-        const char* pngPattern = "*.png";
-        std::array<const char*, 1> patterns = {pngPattern};
-        const char* path = tinyfd_saveFileDialog("Save Image", "", patterns.size(), patterns.data(), NULL);
-        if(path){
-
-          std::string finalpath{path};
-          if (!finalpath.ends_with(".png"))
-            finalpath += ".png";
-
-          const int channels = 3;
-          std::vector<uint8_t> data(appState.outputWidth*appState.outputHeight*channels);
-          Image img = LoadImageFromTexture(appState.outputImage);
-          Color * colors = LoadImageColors(img);
-          for(int i=0; i<appState.outputWidth*appState.outputHeight; ++i){
-            Color c = colors[i];
-            data[i*channels] = c.r;
-            data[i*channels+1] = c.g;
-            data[i*channels+2] = c.b;
-          }
-          UnloadImageColors(colors);
-          UnloadImage(img);
-          stbi_write_png(finalpath.c_str(), appState.outputWidth, appState.outputHeight, channels, data.data(), appState.outputWidth*sizeof(uint8_t));
-        }
-      }
-
       bool change = false;
 
-      if(appState.inputImage.has_value() && ImGui::Button("Resize to training input", ImVec2(ImGuiContentWidth(), 0))){
-        appState.outputWidth = appState.inputImage->width;
-        appState.outputHeight = appState.inputImage->height;
-        change = true;
+      if(ImGui::Button("Resize to training input", ImVec2(ImGuiContentWidth(), 0))){
+
+        if(!appState.inputImage.has_value()){
+          if(tinyfd_messageBox("Input missing", "Missing input image, load one?", "yesno", "question", 1)){
+            std::optional<std::string> path = openPngFile();
+            if(path.has_value())
+              loadInputImage(path.value(), appState);
+          }
+        }
+
+        if(appState.inputImage.has_value()){
+          appState.outputWidth = appState.inputImage->width;
+          appState.outputHeight = appState.inputImage->height;
+          change = true;
+        }
       }
 
       change = change || ImGui::InputInt("width", &appState.outputWidth);
@@ -258,17 +291,37 @@ int main(int argc, char *argv[]) {
         UnloadImage(img);
       }
 
+      if(ImGui::Button("Save as PNG", ImVec2(ImGuiContentWidth(), 0))){
+        std::optional<std::string> path = savePngFile();
+        if(path.has_value())
+          writePngFromTexture(path.value(), appState.outputImage);
+      }
+
       ImGui::Separator();
 
-      if(ImGui::Button("Eval Model", ImVec2(ImGuiContentWidth(), 0))){
+      if(ImGui::Button("Eval model", ImVec2(ImGuiContentWidth(), 0))){
 
       }
+
+      ImGui::Checkbox("Auto eval during training", &appState.autoEvalDuringTraining);
 
       Utils::Gui::ImageFit(appState.outputImage);
     }
     ImGui::End();
 
     if (ImGui::Begin("Model builder")) {
+
+      if(ImGui::Button("New", ImVec2(ImGuiContentWidth(), 0))){
+
+      }
+      if(ImGui::Button("Load", ImVec2(ImGuiContentWidth(), 0))){
+
+      }
+      if(ImGui::Button("Save", ImVec2(ImGuiContentWidth(), 0))){
+
+      }
+      ImGui::Separator();
+
     }
     ImGui::End();
 
