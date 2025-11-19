@@ -3,11 +3,14 @@
 #include "fmt/base.h"
 #include "tinyfiledialogs/tinyfiledialogs.h"
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <optional>
 #include <stdio.h>
 #include <string.h>
+#include <array>
 
+#include "stb/stb_image_write.h"
 #include "fmt/format.h"
 #include "imgui.h"
 #include "implot.h"
@@ -57,10 +60,29 @@ private:
   RenderTexture2D _target;
 };
 
+struct ApplicationState {
+  std::optional<Texture2D> inputImage;
+  bool isInTraining;
+  bool isModelReady;
+  int outputWidth;
+  int outputHeight;
+  Texture2D outputImage;
+  std::optional<Texture2D> trainingOutputImage;
+};
+
+void appStateInit(ApplicationState& s){
+  s.isInTraining = false;
+  s.isModelReady = false;
+  s.outputWidth = 2;
+  s.outputHeight = 2;
+  Image img = GenImageColor(s.outputWidth, s.outputHeight, BLACK);
+  s.outputImage = LoadTextureFromImage(img);
+  UnloadImage(img);
+}
+
 int main(int argc, char *argv[]) {
 
-  std::optional<Texture2D> inputImage;
-
+  // TODO: remove this
   ml::ComputeGraph g;
 
   ml::DataSet d({2, {0.1, 0.1, 0.5, 0.5}}, {3, {0.5, 0.5, 0.5, 0.1, 0.2, 1.0}});
@@ -84,6 +106,10 @@ int main(int argc, char *argv[]) {
 
   Viewport2D modelViewport(2, 2);
   Viewport2D computeViewport(2, 2);
+
+  // ALWAYS AFTER RAYLIB INIT
+  ApplicationState appState;
+  appStateInit(appState);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
@@ -138,39 +164,107 @@ int main(int argc, char *argv[]) {
     }
     ImGui::End();
 
-    if (ImGui::Begin("Training Input")) {
+    if (ImGui::Begin("Training Image")) {
 
-      if(inputImage.has_value()){
-        Utils::Gui::ImageFit(inputImage.value());
-        if(ImGui::CollapsingHeader("Image infos")){
-          ImGui::LabelText("Dimensions", "%dx%d px", inputImage->width, inputImage->height);
-          ImGui::Separator();
-          ImGui::LabelText("Pixels", "%d", inputImage->width*inputImage->height);
-        }
-      }
-
-      if (ImGui::Button("LOAD", ImVec2(ImGuiContentWidth(), 0))) {
+      if (ImGui::Button("Load", ImVec2(ImGuiContentWidth(), 0))) {
         const char *path = tinyfd_openFileDialog("Image", "", 0, NULL, NULL, 0);
         if (path) {
           fmt::println("{}", path);
-          if(inputImage.has_value())
-            UnloadTexture(inputImage.value());
-          inputImage = LoadTexture(path);
+          if(appState.inputImage.has_value())
+            UnloadTexture(appState.inputImage.value());
+          if(appState.trainingOutputImage.has_value())
+            UnloadTexture(appState.trainingOutputImage.value());
+          appState.inputImage = LoadTexture(path);
+          Image img = GenImageColor(appState.inputImage->width, appState.inputImage->height, BLACK);
+          appState.trainingOutputImage = LoadTextureFromImage(img);
+          UnloadImage(img);
         }
       }
 
-      if(inputImage.has_value()){
-        if (ImGui::Button("REMOVE", ImVec2(ImGuiContentWidth(), 0))) {
-          UnloadTexture(inputImage.value());
-          inputImage = {};
+      if(appState.inputImage.has_value()){
+        if (ImGui::Button("Remove", ImVec2(ImGuiContentWidth(), 0))) {
+          UnloadTexture(appState.inputImage.value());
+          appState.inputImage = {};
+          UnloadTexture(appState.trainingOutputImage.value());
+          appState.trainingOutputImage = {};
         }
+        if(ImGui::CollapsingHeader("Image infos")){
+          ImGui::LabelText("Dimensions", "%dx%d px", appState.inputImage->width, appState.inputImage->height);
+          ImGui::Separator();
+          ImGui::LabelText("Pixels", "%d", appState.inputImage->width*appState.inputImage->height);
+        }
+        if(appState.inputImage.has_value())
+          Utils::Gui::ImageFit(appState.inputImage.value());
       }
-
 
     }
     ImGui::End();
 
-    if (ImGui::Begin("Output preview")) {
+    if(ImGui::Begin("Training Preview")){
+      if(appState.trainingOutputImage.has_value()){
+        Utils::Gui::ImageFit(appState.trainingOutputImage.value());
+      }
+    }
+    ImGui::End();
+
+    if (ImGui::Begin("Model Eval")) {
+
+      if(ImGui::Button("Save", ImVec2(ImGuiContentWidth(), 0))){
+        const char* pngPattern = "*.png";
+        std::array<const char*, 1> patterns = {pngPattern};
+        const char* path = tinyfd_saveFileDialog("Save Image", "", patterns.size(), patterns.data(), NULL);
+        if(path){
+
+          std::string finalpath{path};
+          if (!finalpath.ends_with(".png"))
+            finalpath += ".png";
+
+          const int channels = 3;
+          std::vector<uint8_t> data(appState.outputWidth*appState.outputHeight*channels);
+          Image img = LoadImageFromTexture(appState.outputImage);
+          Color * colors = LoadImageColors(img);
+          for(int i=0; i<appState.outputWidth*appState.outputHeight; ++i){
+            Color c = colors[i];
+            data[i*channels] = c.r;
+            data[i*channels+1] = c.g;
+            data[i*channels+2] = c.b;
+          }
+          UnloadImageColors(colors);
+          UnloadImage(img);
+          stbi_write_png(finalpath.c_str(), appState.outputWidth, appState.outputHeight, channels, data.data(), appState.outputWidth*sizeof(uint8_t));
+        }
+      }
+
+      bool change = false;
+
+      if(appState.inputImage.has_value() && ImGui::Button("Resize to training input", ImVec2(ImGuiContentWidth(), 0))){
+        appState.outputWidth = appState.inputImage->width;
+        appState.outputHeight = appState.inputImage->height;
+        change = true;
+      }
+
+      change = change || ImGui::InputInt("width", &appState.outputWidth);
+      change = change || ImGui::InputInt("Height", &appState.outputHeight);
+
+
+      if(change){
+        if(appState.outputWidth < 2)
+          appState.outputWidth = 2;
+        if(appState.outputHeight < 2)
+          appState.outputHeight = 2;
+        UnloadTexture(appState.outputImage);
+        Image img = GenImageColor(appState.outputWidth, appState.outputHeight, BLACK);
+        appState.outputImage = LoadTextureFromImage(img);
+        UnloadImage(img);
+      }
+
+      ImGui::Separator();
+
+      if(ImGui::Button("Eval Model", ImVec2(ImGuiContentWidth(), 0))){
+
+      }
+
+      Utils::Gui::ImageFit(appState.outputImage);
     }
     ImGui::End();
 
@@ -187,8 +281,8 @@ int main(int argc, char *argv[]) {
     ImGui::End();
 
     if (ImGui::Begin("Debug")) {
-      ImGui::Text(
-          fmt::format("Frame time: {:.2}ms", GetFrameTime() * 1000.0f).c_str());
+      ImGui::LabelText("Frame Time", "%.2f ms", GetFrameTime() * 1000.0f);
+      ImGui::Separator();
     }
     ImGui::End();
 
