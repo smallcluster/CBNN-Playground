@@ -23,7 +23,7 @@ private:
 
 class Optimizer : public ComputeSubGraph{
 public:
-  virtual void optimize() = 0;
+  virtual bool optimize() = 0;
 protected:
   explicit Optimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss);
   void _forward();
@@ -40,7 +40,7 @@ class BatchOptimizer final : public Optimizer {
 public:
   explicit BatchOptimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss,
                           double learningRate = 0.01, double momentum = 0.0);
-  void optimize() override;
+  bool optimize() override;
 
 protected:
    int nextTrainingIndex() override;
@@ -57,7 +57,7 @@ class SGDOptimizer final : public Optimizer {
 public:
   explicit SGDOptimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss, double learningRate = 0.01,
                         double momentum = 0.0, bool nesterov = false);
-  void optimize() override;
+  bool optimize() override;
 
 protected:
    int nextTrainingIndex() override;

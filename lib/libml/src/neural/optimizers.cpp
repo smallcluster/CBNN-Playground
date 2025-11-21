@@ -80,7 +80,7 @@ int BatchOptimizer::nextTrainingIndex() {
   return _currentInput;
 }
 
-void BatchOptimizer::optimize() {
+bool BatchOptimizer::optimize() {
   _forward();
   _backward();
   for (int i = 0; i < _mlp.nbWeights(); ++i)
@@ -99,7 +99,9 @@ void BatchOptimizer::optimize() {
       // Clear AVG gradient
       _avgGradient[i] = {};
     }
+    return false;
   }
+  return true;
 }
 
 // SGDOptimizer
@@ -121,7 +123,7 @@ int SGDOptimizer::nextTrainingIndex() {
   return _indices[_currentInput];
 }
 
-void SGDOptimizer::optimize() {
+bool SGDOptimizer::optimize() {
   _forward();
   _backward();
 
@@ -144,6 +146,7 @@ void SGDOptimizer::optimize() {
     else
       _mlp.setWeight(w + _momentum * v - _learningRate * g, i);
   }
+  return false;
 }
 
 } // namespace ml
