@@ -7,7 +7,7 @@ set(HEADERS
 )
 
 set(SRCS
-        src/stb_image.cpp
+        src/stb_image_write.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SRCS} ${HEADERS})
