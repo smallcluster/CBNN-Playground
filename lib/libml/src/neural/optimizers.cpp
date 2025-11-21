@@ -34,7 +34,6 @@ Optimizer::Optimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss)
   for (int i = 0; i < mlp.nbOutputs(); ++i) {
     _loss->addInput(mlp.getOutputNode(i), *_trueValues[i]);
   }
-
 }
 
 void Optimizer::_forward() {
@@ -47,16 +46,14 @@ void Optimizer::_forward() {
   // Set true values for the loss
   for (int i = 0; i < _dataSet.outputTable().width(); ++i) {
     const double v = _dataSet.outputTable().get(index, i);
-    dynamic_cast<ConstantNode*>(_trueValues[i])->set(v);
+    dynamic_cast<ConstantNode *>(_trueValues[i])->set(v);
   }
 
   // We eval the mlp AND the loss !
   _loss->output().eval();
 }
 
-void Optimizer::_backward() const {
-  _mlp.diff();
-}
+void Optimizer::_backward() const { _mlp.diff(); }
 
 void Optimizer::setLoss(std::unique_ptr<Loss> loss) {
   _loss.reset();
@@ -76,9 +73,7 @@ BatchOptimizer::BatchOptimizer(MLP &mlp, DataSet &dataSet,
       _momentum(momentum), _velocities(_mlp.nbWeights(), 0.0),
       _avgGradient(_mlp.nbWeights()) {}
 
-int BatchOptimizer::nextTrainingIndex() {
-  return _currentInput;
-}
+int BatchOptimizer::nextTrainingIndex() { return _currentInput; }
 
 bool BatchOptimizer::optimize() {
   _forward();
@@ -119,9 +114,7 @@ SGDOptimizer::SGDOptimizer(MLP &mlp, DataSet &dataSet,
   std::ranges::shuffle(_indices, _randomGenerator);
 }
 
-int SGDOptimizer::nextTrainingIndex() {
-  return _indices[_currentInput];
-}
+int SGDOptimizer::nextTrainingIndex() { return _indices[_currentInput]; }
 
 bool SGDOptimizer::optimize() {
   _forward();

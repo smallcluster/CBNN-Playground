@@ -20,6 +20,7 @@ public:
   [[nodiscard]] int size() const;
   std::vector<ComputeNode *> getNodes();
   std::vector<int> getIndices();
+
 private:
   std::map<ComputeNode *, int> _inputIndices = {};
   std::map<int, ComputeNode *> _inputs = {};

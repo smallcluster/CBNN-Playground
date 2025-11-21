@@ -19,7 +19,9 @@ void Neuron::addInput(ComputeNode &node, const bool addWeight) {
     _aggregate->addInput(node);
 }
 
-void Neuron::connectToNeuron(Neuron &other) const { other.addInput(output(), true); }
+void Neuron::connectToNeuron(Neuron &other) const {
+  other.addInput(output(), true);
+}
 ComputeNode &Neuron::getWeight(const int index) const {
   return *_inputWeights[index];
 }

@@ -9,9 +9,7 @@ namespace ml {
 // SLOTS
 int Slots::get(ComputeNode &node) { return _inputIndices[&node]; }
 
-ComputeNode &Slots::get(const int index) {
-  return *_inputs[index];
-}
+ComputeNode &Slots::get(const int index) { return *_inputs[index]; }
 
 void Slots::set(const int index, ComputeNode &node) {
   _inputs[index] = &node;
@@ -30,9 +28,7 @@ void Slots::erase(const int index) {
   _inputIndices.erase(node);
 }
 
-int Slots::size() const {
-  return static_cast<int>(_inputs.size());
-}
+int Slots::size() const { return static_cast<int>(_inputs.size()); }
 std::vector<ComputeNode *> Slots::getNodes() {
   auto v = std::ranges::views::values(_inputs);
   return {v.begin(), v.end()};
@@ -44,9 +40,9 @@ std::vector<int> Slots::getIndices() {
 
 // BASE
 
-int ComputeNode::incOwnerCount(){return ++_ownerCount;};
-int ComputeNode::decOwnerCount(){return --_ownerCount;};
-int ComputeNode::ownerCount(){return _ownerCount;};
+int ComputeNode::incOwnerCount() { return ++_ownerCount; };
+int ComputeNode::decOwnerCount() { return --_ownerCount; };
+int ComputeNode::ownerCount() { return _ownerCount; };
 
 double ComputeNode::eval() {
   if (_invalidateCache)
@@ -68,9 +64,8 @@ double ComputeNode::diff() {
     return _cachedGradient.value();
 
   double g = 0.0;
-  for (const auto & _output : _outputs)
-    g += _output->diff() *
-         _output->pdiff(_output->_slots.get(*this));
+  for (const auto &_output : _outputs)
+    g += _output->diff() * _output->pdiff(_output->_slots.get(*this));
 
   _cachedGradient = g;
   return _cachedGradient.value();
@@ -106,13 +101,13 @@ void ComputeNode::disconnect(ComputeNode &other) {
 
 void ComputeNode::clearInputs() {
   const std::vector<ComputeNode *> tmp = _slots.getNodes();
-  for (ComputeNode * n : tmp)
+  for (ComputeNode *n : tmp)
     n->disconnect(*this);
 }
 
 void ComputeNode::clearOutputs() {
-  const std::vector<ComputeNode*> tmp{_outputs.begin(), _outputs.end()};
-  for (ComputeNode * n : tmp)
+  const std::vector<ComputeNode *> tmp{_outputs.begin(), _outputs.end()};
+  for (ComputeNode *n : tmp)
     disconnect(*n);
 }
 void ComputeNode::clearConnections() {

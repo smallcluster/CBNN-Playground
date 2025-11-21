@@ -21,9 +21,10 @@ private:
   int _size = 0;
 };
 
-class Optimizer : public ComputeSubGraph{
+class Optimizer : public ComputeSubGraph {
 public:
   virtual bool optimize() = 0;
+
 protected:
   explicit Optimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss);
   void _forward();
@@ -33,17 +34,18 @@ protected:
   MLP &_mlp;
   DataSet &_dataSet;
   std::unique_ptr<Loss> _loss;
-  std::vector<ComputeNode*> _trueValues;
+  std::vector<ComputeNode *> _trueValues;
 };
 
 class BatchOptimizer final : public Optimizer {
 public:
-  explicit BatchOptimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss,
+  explicit BatchOptimizer(MLP &mlp, DataSet &dataSet,
+                          std::unique_ptr<Loss> loss,
                           double learningRate = 0.01, double momentum = 0.0);
   bool optimize() override;
 
 protected:
-   int nextTrainingIndex() override;
+  int nextTrainingIndex() override;
 
 private:
   int _currentInput = 0;
@@ -55,12 +57,13 @@ private:
 
 class SGDOptimizer final : public Optimizer {
 public:
-  explicit SGDOptimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss, double learningRate = 0.01,
-                        double momentum = 0.0, bool nesterov = false);
+  explicit SGDOptimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss,
+                        double learningRate = 0.01, double momentum = 0.0,
+                        bool nesterov = false);
   bool optimize() override;
 
 protected:
-   int nextTrainingIndex() override;
+  int nextTrainingIndex() override;
 
 private:
   int _currentInput = 0;

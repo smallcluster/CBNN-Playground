@@ -25,9 +25,7 @@ void Layer::addInput(ComputeNode &node) const {
 Neuron &Layer::getNeuron(const int index) const { return *_neurons[index]; }
 int Layer::size() const { return static_cast<int>(_neurons.size()); }
 
-void Layer::addNeuron(Neuron* n) {
-  _neurons.push_back(n);
-}
+void Layer::addNeuron(Neuron *n) { _neurons.push_back(n); }
 
 ComputeNode &Layer::getWeight(const int index) const {
   int i = 0;

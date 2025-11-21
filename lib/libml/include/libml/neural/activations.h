@@ -9,6 +9,7 @@ class Activation : public ComputeSubGraph {
 public:
   virtual void setInput(ComputeNode &node) = 0;
   virtual ComputeNode &output() = 0;
+
 protected:
   explicit Activation(IComputeGraph &graph);
 };
