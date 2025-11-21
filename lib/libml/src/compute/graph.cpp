@@ -36,6 +36,8 @@ void ComputeGraph::removeNode(ComputeNode &node) {
   for (auto e : toRemove)
     _edges.erase(e);
   _nodes.erase(std::ranges::find(_nodes, &node));
+  
+  if(node.decOwnerCount() == 0)
   delete &node;
 }
 
@@ -47,7 +49,9 @@ int ComputeGraph::nbNodes() const {
   return static_cast<int>(_nodes.size());
 }
 NodeFactory &ComputeGraph::nodeFactory() { return _nodeFactory; }
+
 void ComputeGraph::registerNode(std::unique_ptr<ComputeNode> node) {
+  node->incOwnerCount();
   _nodes.push_back(node.release());
 }
 
@@ -73,6 +77,7 @@ void ComputeSubGraph::removeEdge(const ComputeEdge &edge) {
 std::set<ComputeEdge> &ComputeSubGraph::getEdges() { return _edges; }
 
 void ComputeSubGraph::removeNode(ComputeNode &node) {
+  node.decOwnerCount();
   std::set<ComputeEdge> toRemove;
   for (auto e : _edges)
     if (&e.src == &node || &e.dst == &node)
@@ -91,6 +96,7 @@ int ComputeSubGraph::nbNodes() const {
 }
 NodeFactory &ComputeSubGraph::nodeFactory() { return _nodeFactory; }
 void ComputeSubGraph::registerNode(std::unique_ptr<ComputeNode> node) {
+  node->incOwnerCount();
   _nodes.push_back(node.get());
   _graph.registerNode(std::move(node));
 }

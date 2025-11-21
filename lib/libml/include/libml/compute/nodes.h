@@ -43,6 +43,10 @@ public:
   [[nodiscard]] int nbInputs() const;
   [[nodiscard]] int nbOutputs() const;
 
+  int incOwnerCount();
+  int decOwnerCount();
+  int ownerCount();
+
 protected:
   ComputeNode() = default;
 
@@ -54,6 +58,7 @@ private:
   virtual double _eval() = 0;
   bool _invalidateCache = false;
   void _clearCache();
+  int _ownerCount = 0;
 };
 
 class IdentityNode final : public ComputeNode {

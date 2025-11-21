@@ -43,6 +43,11 @@ std::vector<int> Slots::getIndices() {
 }
 
 // BASE
+
+int ComputeNode::incOwnerCount(){return ++_ownerCount;};
+int ComputeNode::decOwnerCount(){return --_ownerCount;};
+int ComputeNode::ownerCount(){return _ownerCount;};
+
 double ComputeNode::eval() {
   if (_invalidateCache)
     _clearCache();
