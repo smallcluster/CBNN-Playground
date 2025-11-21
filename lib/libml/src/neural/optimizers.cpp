@@ -39,12 +39,17 @@ Optimizer::Optimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss)
 
 void Optimizer::_forward() {
   const int index = nextTrainingIndex();
-  // Set inputs of MLP and Loss function
+  // Set inputs of MLP
   for (int i = 0; i < _dataSet.inputTable().width(); ++i) {
     const double v = _dataSet.inputTable().get(index, i);
     _mlp.setInput(v, i);
+  }
+  // Set true values for the loss
+  for (int i = 0; i < _dataSet.outputTable().width(); ++i) {
+    const double v = _dataSet.outputTable().get(index, i);
     dynamic_cast<ConstantNode*>(_trueValues[i])->set(v);
   }
+
   // We eval the mlp AND the loss !
   _loss->output().eval();
 }
