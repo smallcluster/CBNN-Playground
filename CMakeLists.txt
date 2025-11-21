@@ -24,8 +24,8 @@ add_executable(${PROJECT_NAME}
         src/Utils/MathUtils.cpp
         src/Utils/MathUtils.h
         # --- ML ---
-        src/ML/Neuron.cpp
-        src/ML/Layer.cpp
+        #src/ML/Neuron.cpp
+        #src/ML/Layer.cpp
         #src/ML/MLP.cpp
 )
 
@@ -33,7 +33,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_EXE_LINKER_FLAGS "-static")
 endif ()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib fmt imgui implot rlimgui spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32> ::tinyfiledialogs stb libml libmath libverlet)
+target_link_libraries(${PROJECT_NAME} PRIVATE raylib fmt imgui implot rlimgui ::tinyfiledialogs stb libml libmath libverlet)
 set_target_properties(${PROJECT_NAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}
         RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}
