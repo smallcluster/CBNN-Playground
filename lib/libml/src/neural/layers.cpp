@@ -25,10 +25,8 @@ void Layer::addInput(ComputeNode &node) const {
 Neuron &Layer::getNeuron(const int index) const { return *_neurons[index]; }
 int Layer::size() const { return static_cast<int>(_neurons.size()); }
 
-void Layer::addNeuron(std::unique_ptr<Aggregate> aggregate,
-                      std::unique_ptr<Activation> activation) {
-  _neurons.push_back(
-      new Neuron(*this, std::move(aggregate), std::move(activation)));
+void Layer::addNeuron(Neuron* n) {
+  _neurons.push_back(n);
 }
 
 ComputeNode &Layer::getWeight(const int index) const {
@@ -52,9 +50,7 @@ int Layer::nbWeights() const {
 LayerReLU::LayerReLU(IComputeGraph &graph, const int size, const bool addBias)
     : Layer(graph) {
   for (int i = 0; i < size; ++i) {
-    std::unique_ptr<Aggregate> agg = std::make_unique<SumAggregate>(graph);
-    std::unique_ptr<Activation> acc = std::make_unique<ReLUActivation>(graph);
-    addNeuron(std::move(agg), std::move(acc));
+    addNeuron(new NeuronReLu(*this));
   }
   // Bias
   if (addBias)
@@ -64,10 +60,7 @@ LayerSigmoid::LayerSigmoid(IComputeGraph &graph, const int size,
                            const bool addBias)
     : Layer(graph) {
   for (int i = 0; i < size; ++i) {
-    std::unique_ptr<Aggregate> agg = std::make_unique<SumAggregate>(graph);
-    std::unique_ptr<Activation> acc =
-        std::make_unique<SigmoidActivation>(graph);
-    addNeuron(std::move(agg), std::move(acc));
+    addNeuron(new NeuronSigmoid(*this));
   }
   // Bias
   if (addBias)
@@ -77,10 +70,7 @@ LayerIdentity::LayerIdentity(IComputeGraph &graph, const int size,
                              const bool addBias)
     : Layer(graph) {
   for (int i = 0; i < size; ++i) {
-    std::unique_ptr<Aggregate> agg = std::make_unique<SumAggregate>(graph);
-    std::unique_ptr<Activation> acc =
-        std::make_unique<IdentityActivation>(graph);
-    addNeuron(std::move(agg), std::move(acc));
+    addNeuron(new NeuronIdentity(*this));
   }
   // Bias
   if (addBias)

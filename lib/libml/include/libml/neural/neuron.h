@@ -8,20 +8,34 @@
 
 namespace ml {
 
-class Neuron final : public ComputeSubGraph {
+class Neuron : public ComputeSubGraph {
 public:
-  explicit Neuron(IComputeGraph &graph, std::unique_ptr<Aggregate> aggregate,
-                  std::unique_ptr<Activation> activation);
   [[nodiscard]] ComputeNode &output() const;
   void addInput(ComputeNode &node, bool addWeight = true);
   void connectToNeuron(Neuron &other) const;
   [[nodiscard]] ComputeNode &getWeight(int index) const;
   [[nodiscard]] int nbWeights() const;
-
+protected:
+    explicit Neuron(IComputeGraph &graph);
+    std::unique_ptr<Aggregate> _aggregate;
+    std::unique_ptr<Activation> _activation;
 private:
-  std::unique_ptr<Aggregate> _aggregate;
-  std::unique_ptr<Activation> _activation;
   std::vector<ComputeNode *> _inputWeights;
+};
+
+class NeuronReLu final : public Neuron {
+  public:
+    explicit NeuronReLu(IComputeGraph &graph);
+};
+
+class NeuronIdentity final : public Neuron {
+  public:
+    explicit NeuronIdentity(IComputeGraph &graph);
+};
+
+class NeuronSigmoid final : public Neuron {
+  public:
+    explicit NeuronSigmoid(IComputeGraph &graph);
 };
 
 } // namespace ml

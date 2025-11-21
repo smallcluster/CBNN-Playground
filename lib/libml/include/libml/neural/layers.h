@@ -16,7 +16,7 @@ public:
   void addInput(ComputeNode& node) const;
   [[nodiscard]] Neuron& getNeuron(int index) const;
   [[nodiscard]] int size() const;
-  void addNeuron(std::unique_ptr<Aggregate> aggregate, std::unique_ptr<Activation> activation);
+  void addNeuron(Neuron * n);
   [[nodiscard]] ComputeNode& getWeight(int index) const;
   [[nodiscard]] int nbWeights() const;
 protected:
