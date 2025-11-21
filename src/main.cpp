@@ -1,8 +1,5 @@
-#include <cmath>
-
-#include "fmt/base.h"
-#include "tinyfiledialogs/tinyfiledialogs.h"
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -10,12 +7,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "fmt/base.h"
 #include "fmt/format.h"
 #include "imgui.h"
 #include "implot.h"
 #include "raylib.h"
 #include "rlImGui.h"
 #include "stb/stb_image_write.h"
+#include "tinyfiledialogs/tinyfiledialogs.h"
 
 #include "libml/compute/graph.h"
 #include "libml/neural/dataset.h"
