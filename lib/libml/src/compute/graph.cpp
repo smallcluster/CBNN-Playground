@@ -38,7 +38,7 @@ void ComputeGraph::removeNode(ComputeNode &node) {
   _nodes.erase(std::ranges::find(_nodes, &node));
   
   if(node.decOwnerCount() == 0)
-  delete &node;
+    delete &node;
 }
 
 ComputeNode &ComputeGraph::nodeAt(const int index) const {
@@ -60,7 +60,8 @@ ComputeSubGraph::ComputeSubGraph(IComputeGraph &graph)
     : _graph(graph), _nodeFactory(*this) {}
 
 ComputeSubGraph::~ComputeSubGraph() {
-  for (const auto node : _nodes)
+  std::vector<ComputeNode *> tmp{_nodes.begin(), _nodes.end()};
+  for (const auto node : tmp)
     ComputeSubGraph::removeNode(*node);
 }
 

@@ -103,13 +103,16 @@ void ComputeNode::disconnect(ComputeNode &other) {
   _outputs.erase(std::ranges::find(_outputs, &other));
   other._slots.erase(*this);
 }
+
 void ComputeNode::clearInputs() {
-  for (const std::vector<ComputeNode *> tmp = _slots.getNodes();
-       ComputeNode * n : tmp)
+  const std::vector<ComputeNode *> tmp = _slots.getNodes();
+  for (ComputeNode * n : tmp)
     n->disconnect(*this);
 }
+
 void ComputeNode::clearOutputs() {
-  for (const std::vector<ComputeNode *> tmp; ComputeNode * n : tmp)
+  const std::vector<ComputeNode*> tmp{_outputs.begin(), _outputs.end()};
+  for (ComputeNode * n : tmp)
     disconnect(*n);
 }
 void ComputeNode::clearConnections() {
