@@ -38,6 +38,18 @@ int ImGuiContentHeight() {
   return static_cast<int>(vMax.y - vMin.y);
 }
 
+class Window {
+public:
+  Window(const int width, const int height, const char *title,
+         const unsigned int flags) {
+    SetConfigFlags(flags);
+    InitWindow(width, height, title);
+  }
+  ~Window() { CloseWindow(); }
+  void setTargetFps(const int fps) { SetTargetFPS(fps); }
+  bool shouldClose() { return WindowShouldClose(); }
+};
+
 class Viewport2D {
 public:
   Viewport2D(const int width, const int height)
@@ -62,25 +74,32 @@ private:
 
 struct ApplicationState {
   std::optional<Texture2D> inputImage;
-  bool isInTraining;
-  bool isModelReady;
-  bool autoEvalDuringTraining;
-  int outputWidth;
-  int outputHeight;
+  bool isInTraining = false;
+  bool isModelReady = false;
+  bool autoEvalDuringTraining = false;
+  int outputWidth = 2;
+  int outputHeight = 2;
   Texture2D outputImage;
   std::optional<Texture2D> trainingOutputImage;
-};
+  ApplicationState() {
+    Image img = GenImageColor(outputWidth, outputHeight, BLACK);
+    outputImage = LoadTextureFromImage(img);
+    UnloadImage(img);
+  }
+  ~ApplicationState() {
+    if (inputImage.has_value()) {
+      UnloadTexture(inputImage.value());
+      inputImage = {};
+    }
 
-void appStateInit(ApplicationState& s){
-  s.isInTraining = false;
-  s.isModelReady = false;
-  s.autoEvalDuringTraining = false;
-  s.outputWidth = 2;
-  s.outputHeight = 2;
-  Image img = GenImageColor(s.outputWidth, s.outputHeight, BLACK);
-  s.outputImage = LoadTextureFromImage(img);
-  UnloadImage(img);
+    if (trainingOutputImage.has_value()) {
+      UnloadTexture(trainingOutputImage.value());
+      trainingOutputImage = {};
+    }
+
+    UnloadTexture(outputImage);
 }
+};
 
 void loadInputImage(const std::string& path, ApplicationState& s){
   // Clear textures memory
@@ -152,20 +171,21 @@ int main(int argc, char *argv[]) {
 
   while(optimizer->optimize());
 
-  SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_ALWAYS_RUN |
+
+  Window window(1920, 1080, "CBNN Playground",
+                FLAG_MSAA_4X_HINT | FLAG_WINDOW_ALWAYS_RUN |
                  FLAG_WINDOW_RESIZABLE);
-  InitWindow(1920, 1080, "CBNN Playground");
-  SetTargetFPS(60);
+  window.setTargetFps(60);
+
   Utils::Gui::Setup();
 
   Viewport2D modelViewport(2, 2);
   Viewport2D computeViewport(2, 2);
 
-  // ALWAYS AFTER RAYLIB INIT
+  // ALWAYS AFTER WINDOW INIT
   ApplicationState appState;
-  appStateInit(appState);
 
-  while (!WindowShouldClose()) {
+  while (!window.shouldClose()) {
     BeginDrawing();
     ClearBackground({30, 31, 34, 255});
 
@@ -342,7 +362,5 @@ int main(int argc, char *argv[]) {
     EndDrawing();
   }
   Utils::Gui::ShutDown();
-  CloseWindow();
-
   return 0;
 }
