@@ -140,18 +140,17 @@ int main(int argc, char *argv[]) {
   // TODO: remove this
   ml::ComputeGraph g;
 
-  ml::DataSet d({2, {0.1, 0.1, 0.5, 0.5}}, {3, {0.5, 0.5, 0.5, 0.1, 0.2, 1.0}});
+  ml::DataSet d({2, {0, 0, 0, 0}}, {3, {1, 1, 1, 1, 1, 1}});
 
   ml::MLP mlp(g, {ml::LayerBuilder(2, ml::LayerBuilder::Type::Identity, false),
-                  ml::LayerBuilder(12, ml::LayerBuilder::Type::ReLu, true),
-                  ml::LayerBuilder(12, ml::LayerBuilder::Type::ReLu, true),
                   ml::LayerBuilder(3, ml::LayerBuilder::Type::Identity, true)});
+
 
   std::unique_ptr<ml::Optimizer> optimizer =
       std::make_unique<ml::BatchOptimizer>(mlp, d,
                                            std::make_unique<ml::MSELoss>(g));
 
-  // optimizer->optimize();
+  while(optimizer->optimize());
 
   SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_ALWAYS_RUN |
                  FLAG_WINDOW_RESIZABLE);
