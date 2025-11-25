@@ -4,6 +4,14 @@ include(FetchContent)
 
 add_compile_definitions(ImDrawIdx=unsigned\ int)
 
+# effolkronium_random
+FetchContent_Declare(
+        effolkronium_random
+        GIT_REPOSITORY https://github.com/ilqvya/random.git
+        GIT_TAG master
+        GIT_SHALLOW 1
+)
+FetchContent_MakeAvailable(effolkronium_random)
 
 # tinyfiledialogs
 find_package(tinyfiledialogs QUIET)
@@ -15,6 +23,7 @@ if (NOT tinyfiledialogs_FOUND)
     )
   FetchContent_MakeAvailable(tinyfiledialogs)
 endif ()
+
 
 # raylib
 find_package(raylib QUIET)
