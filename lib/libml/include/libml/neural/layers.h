@@ -6,7 +6,6 @@
 #include <memory>
 #include <vector>
 
-
 namespace ml {
 
 class Layer : public ComputeSubGraph {
@@ -14,11 +13,11 @@ public:
   ~Layer() override;
   void connectToLayer(const Layer &other) const;
   void addInput(ComputeNode &node) const;
-  [[nodiscard]] Neuron &getNeuron(int index) const;
-  [[nodiscard]] int size() const;
+  Neuron &getNeuron(int index) const;
+  int size() const;
   void addNeuron(Neuron *n);
-  [[nodiscard]] ComputeNode &getWeight(int index) const;
-  [[nodiscard]] int nbWeights() const;
+  ComputeNode &getWeight(int index) const;
+  int nbWeights() const;
 
 protected:
   explicit Layer(IComputeGraph &graph);
@@ -45,12 +44,11 @@ public:
 class LayerBuilder {
 public:
   enum class Type { ReLu, Sigmoid, Identity };
-  std::unique_ptr<Layer> build(IComputeGraph &graph);
+  int size = 0;
+  Type type = Type::Identity;
+  bool bias = false;
+  LayerBuilder() = default;
   explicit LayerBuilder(int size, Type type, bool addBias);
-
-private:
-  int _size;
-  Type _type;
-  bool _bias;
+  std::unique_ptr<Layer> build(IComputeGraph &graph);
 };
 } // namespace ml

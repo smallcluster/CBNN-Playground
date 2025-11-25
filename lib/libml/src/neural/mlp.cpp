@@ -21,7 +21,7 @@ MLP::MLP(IComputeGraph &graph, const std::vector<LayerBuilder> &layers)
 
   // Connect each constant node to its corresponding neuron in the input layer
   for (int i = 0; i < _inputs.size(); ++i) {
-    _layers[0]->getNeuron(i).addInput(*_inputs[i], false);
+    _layers[0]->getNeuron(i).addInput(*_inputs[i], false, 0.0);
   }
 
   // Connect each layers
@@ -51,12 +51,12 @@ ComputeNode &MLP::getOutputNode(const int index) const {
 }
 
 void MLP::setInput(const double value, const int index) const {
-  dynamic_cast<ConstantNode *>(_inputs[index])->set(value);
+  static_cast<ConstantNode *>(_inputs[index])->set(value);
 }
 
 double MLP::getOutput(const int index) const { return _outputs[index]->eval(); }
 void MLP::setWeight(const double value, const int index) const {
-  dynamic_cast<ConstantNode *>(_weights[index])->set(value);
+  static_cast<ConstantNode *>(_weights[index])->set(value);
 }
 int MLP::nbWeights() const { return static_cast<int>(_weights.size()); }
 double MLP::getWeight(const int index) const { return _weights[index]->eval(); }
@@ -70,8 +70,11 @@ void MLP::eval() const {
 }
 
 void MLP::diff() const {
-  for (int i = 0; i < _weights.size(); ++i)
-    getWeightDiff(i);
+  for (ComputeNode *n : _inputs)
+    n->diff();
+
+  // for (int i = 0; i < _weights.size(); ++i)
+  // getWeightDiff(i);
 }
 
 } // namespace ml

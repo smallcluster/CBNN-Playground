@@ -9,6 +9,7 @@ class Loss : public ComputeSubGraph {
 public:
   virtual void addInput(ComputeNode &predicted, ComputeNode &trueValue) = 0;
   virtual ComputeNode &output() = 0;
+  double loss = 0;
 
 protected:
   explicit Loss(IComputeGraph &graph);
@@ -21,7 +22,7 @@ public:
   ComputeNode &output() override;
 
 protected:
-  [[nodiscard]] AddNode &sumNode() const;
+  AddNode &sumNode() const;
 
 private:
   AddNode &_sum;

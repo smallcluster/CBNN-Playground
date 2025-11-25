@@ -12,15 +12,15 @@ class MLP final : public ComputeSubGraph {
 public:
   explicit MLP(IComputeGraph &graph, const std::vector<LayerBuilder> &layers);
   ~MLP() override;
-  [[nodiscard]] int nbInputs() const;
-  [[nodiscard]] int nbOutputs() const;
-  [[nodiscard]] ComputeNode &getOutputNode(int index) const;
-  [[nodiscard]] int nbWeights() const;
+  int nbInputs() const;
+  int nbOutputs() const;
+  ComputeNode &getOutputNode(int index) const;
+  int nbWeights() const;
   void setInput(double value, int index) const;
   void setWeight(double value, int index) const;
-  [[nodiscard]] double getOutput(int index) const;
-  [[nodiscard]] double getWeight(int index) const;
-  [[nodiscard]] double getWeightDiff(int index) const;
+  double getOutput(int index) const;
+  double getWeight(int index) const;
+  double getWeightDiff(int index) const;
   void eval() const;
   void diff() const;
 

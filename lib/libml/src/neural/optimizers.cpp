@@ -1,7 +1,12 @@
 #include "libml/neural/optimizers.h"
 
 #include <algorithm>
-#include <random>
+#include <assert.h>
+#include <chrono>
+
+#include "effolkronium/random.hpp"
+
+using Random = effolkronium::random_static;
 
 namespace ml {
 
@@ -20,14 +25,16 @@ int ContinuousMean::size() const { return _size; }
 // Optimizer
 //------------------------------------------------------------------------------
 
-Optimizer::Optimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss)
-    : ComputeSubGraph(mlp), _mlp(mlp), _dataSet(dataSet),
+Loss &Optimizer::getLoss() { return *_loss; }
+
+Optimizer::Optimizer(MLP &mlp, std::unique_ptr<Loss> loss)
+    : ComputeSubGraph(static_cast<IComputeGraph &>(mlp)), _mlp(mlp),
       _loss(std::move(loss)) {
 
   // Create Cte nodes for each true inputs
   for (int i = 0; i < mlp.nbOutputs(); ++i) {
     _trueValues.push_back(
-        &ComputeSubGraph::nodeFactory().createConstantNode(0.0));
+        &this->ComputeSubGraph::nodeFactory().createConstantNode(0.0));
   }
 
   // Connect the mlp and the true inputs to the loss sub graph
@@ -36,21 +43,25 @@ Optimizer::Optimizer(MLP &mlp, DataSet &dataSet, std::unique_ptr<Loss> loss)
   }
 }
 
+void Optimizer::setDataset(DataSet &dataSet) { _dataSet = &dataSet; }
+
 void Optimizer::_forward() {
+  assert(_dataSet != nullptr && "ERROR: no DataSet");
+
   const int index = nextTrainingIndex();
   // Set inputs of MLP
-  for (int i = 0; i < _dataSet.inputTable().width(); ++i) {
-    const double v = _dataSet.inputTable().get(index, i);
+  for (int i = 0; i < _dataSet->inputTable().width(); ++i) {
+    const double v = _dataSet->inputTable().get(index, i);
     _mlp.setInput(v, i);
   }
   // Set true values for the loss
-  for (int i = 0; i < _dataSet.outputTable().width(); ++i) {
-    const double v = _dataSet.outputTable().get(index, i);
-    dynamic_cast<ConstantNode *>(_trueValues[i])->set(v);
+  for (int i = 0; i < _dataSet->outputTable().width(); ++i) {
+    const double v = _dataSet->outputTable().get(index, i);
+    static_cast<ConstantNode *>(_trueValues[i])->set(v);
   }
 
-  // We eval the mlp AND the loss !
-  _loss->output().eval();
+  // We eval the mlp with the loss !
+  _loss->loss = _loss->output().eval();
 }
 
 void Optimizer::_backward() const { _mlp.diff(); }
@@ -66,11 +77,10 @@ void Optimizer::setLoss(std::unique_ptr<Loss> loss) {
 
 // BatchOptimizer
 //------------------------------------------------------------------------------
-BatchOptimizer::BatchOptimizer(MLP &mlp, DataSet &dataSet,
-                               std::unique_ptr<Loss> loss,
+BatchOptimizer::BatchOptimizer(MLP &mlp, std::unique_ptr<Loss> loss,
                                const double learningRate, const double momentum)
-    : Optimizer(mlp, dataSet, std::move(loss)), _learningRate(learningRate),
-      _momentum(momentum), _velocities(_mlp.nbWeights(), 0.0),
+    : Optimizer(mlp, std::move(loss)), learningRate(learningRate),
+      momentum(momentum), _previousUpdate(_mlp.nbWeights(), 0.0),
       _avgGradient(_mlp.nbWeights()) {}
 
 int BatchOptimizer::nextTrainingIndex() { return _currentInput; }
@@ -84,13 +94,15 @@ bool BatchOptimizer::optimize() {
   // Next input
   ++_currentInput;
 
-  if (_currentInput == _dataSet.size()) {
+  if (_currentInput == _dataSet->size()) {
     _currentInput = 0;
     // Apply new weight values from the avg gradient
     for (int i = 0; i < _mlp.nbWeights(); ++i) {
-      _velocities[i] =
-          _momentum * _velocities[i] - _learningRate * _avgGradient[i].get();
-      _mlp.setWeight(_avgGradient[i].get() + _velocities[i], i);
+      const double newWeight = _mlp.getWeight(i) +
+                               momentum * _previousUpdate[i] -
+                               learningRate * _avgGradient[i].get();
+      _mlp.setWeight(newWeight, i);
+      _previousUpdate[i] = newWeight;
       // Clear AVG gradient
       _avgGradient[i] = {};
     }
@@ -101,17 +113,19 @@ bool BatchOptimizer::optimize() {
 
 // SGDOptimizer
 //------------------------------------------------------------------------------
-SGDOptimizer::SGDOptimizer(MLP &mlp, DataSet &dataSet,
-                           std::unique_ptr<Loss> loss,
+SGDOptimizer::SGDOptimizer(MLP &mlp, std::unique_ptr<Loss> loss,
                            const double learningRate, const double momentum,
                            const bool nesterov)
-    : Optimizer(mlp, dataSet, std::move(loss)), _learningRate(learningRate),
-      _momentum(momentum), _velocities(_mlp.nbWeights(), 0.0),
-      _indices(_mlp.nbWeights()), _nesterov(nesterov),
-      _randomGenerator(_randomDevice()) {
+    : Optimizer(mlp, std::move(loss)), learningRate(learningRate),
+      momentum(momentum), _previousUpdate(_mlp.nbWeights(), 0.0),
+      nesterov(nesterov), _randomGenerator(_randomDevice()) {}
+
+void SGDOptimizer::setDataset(DataSet &dataSet) {
+  _dataSet = &dataSet;
+  _indices = std::vector<int>(dataSet.size());
   for (int i = 0; i < _indices.size(); ++i)
     _indices[i] = i;
-  std::ranges::shuffle(_indices, _randomGenerator);
+  Random::shuffle(_indices);
 }
 
 int SGDOptimizer::nextTrainingIndex() { return _indices[_currentInput]; }
@@ -122,23 +136,25 @@ bool SGDOptimizer::optimize() {
 
   ++_currentInput;
 
-  if (_currentInput == _dataSet.size()) {
+  if (_currentInput == _dataSet->size()) {
     _currentInput = 0;
-    // Reshuffle the inputs
-    std::ranges::shuffle(_indices, _randomGenerator);
+    Random::shuffle(_indices);
   }
 
   // Apply new weight values from the gradient
-  for (int i = 0; i < _velocities.size(); ++i) {
+  for (int i = 0; i < _mlp.nbWeights(); ++i) {
+    double newWeight = _mlp.getWeight(i);
     const double g = _mlp.getWeightDiff(i);
-    const double v = _momentum * _velocities[i] - _learningRate * g;
-    _velocities[i] = v;
-    const double w = _mlp.getWeightDiff(i);
-    if (_nesterov)
-      _mlp.setWeight(w + v, i);
+    if (nesterov)
+      newWeight +=
+          momentum * (momentum * _previousUpdate[i] - learningRate * g) -
+          learningRate * g;
     else
-      _mlp.setWeight(w + _momentum * v - _learningRate * g, i);
+      newWeight += momentum * _previousUpdate[i] - learningRate * g;
+    _mlp.setWeight(newWeight, i);
+    _previousUpdate[i] = newWeight;
   }
+
   return false;
 }
 

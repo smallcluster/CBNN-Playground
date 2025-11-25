@@ -14,7 +14,7 @@ void L2Loss::addInput(ComputeNode &predicted, ComputeNode &trueValue) {
   createEdge(trueValue, sub, 0);
   createEdge(predicted, sub, 1);
   CtePowerNode &pow = nodeFactory().createCtePowerNode(2);
-  createEdge(sub, pow, {});
+  createEdge(sub, pow, 0);
   createEdge(pow, _sum, {});
 }
 ComputeNode &L2Loss::output() { return _sum; }
@@ -22,8 +22,8 @@ AddNode &L2Loss::sumNode() const { return _sum; }
 
 // MSE
 MSELoss::MSELoss(IComputeGraph &graph)
-    : L2Loss(graph), _div(L2Loss::nodeFactory().createCteDivNode(0)) {
-  L2Loss::createEdge(sumNode(), _div, {});
+    : L2Loss(graph), _div(this->L2Loss::nodeFactory().createCteDivNode(0.0)) {
+  createEdge(sumNode(), _div, 0);
 }
 ComputeNode &MSELoss::output() { return _div; }
 
@@ -34,14 +34,15 @@ void MSELoss::addInput(ComputeNode &predicted, ComputeNode &trueValue) {
 
 // L1Loss
 L1Loss::L1Loss(IComputeGraph &graph)
-    : Loss(graph), _sum(Loss::nodeFactory().createAddNode()) {}
+    : Loss(graph), _sum(this->Loss::nodeFactory().createAddNode()) {}
 
 void L1Loss::addInput(ComputeNode &predicted, ComputeNode &trueValue) {
   SubNode &sub = nodeFactory().createSubNode();
-  createEdge(predicted, sub, {});
-  CtePowerNode &pow = nodeFactory().createCtePowerNode(2);
-  createEdge(sub, pow, 0);
-  createEdge(pow, _sum, 1);
+  createEdge(trueValue, sub, 0);
+  createEdge(predicted, sub, 1);
+  AbsNode &abs = nodeFactory().createAbsNode();
+  createEdge(sub, abs, 0);
+  createEdge(abs, _sum, {});
 }
 ComputeNode &L1Loss::output() { return _sum; }
 

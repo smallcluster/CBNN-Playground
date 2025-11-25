@@ -1,5 +1,9 @@
 #include "libml/neural/layers.h"
 
+#include "effolkronium/random.hpp"
+
+using Random = effolkronium::random_static;
+
 namespace ml {
 
 Layer::Layer(IComputeGraph &graph) : ComputeSubGraph(graph) {}
@@ -10,15 +14,21 @@ Layer::~Layer() {
 }
 
 void Layer::connectToLayer(const Layer &other) const {
+  std::normal_distribution<double> d{
+      0.0, std::sqrt(2.0 / static_cast<double>(_neurons.size()))};
   for (const auto _neuron : _neurons) {
     for (int j = 0; j < other.size(); ++j) {
-      _neuron->connectToNeuron(other.getNeuron(j));
+      double w = Random::get(d);
+      _neuron->connectToNeuron(other.getNeuron(j), w);
     }
   }
 }
 void Layer::addInput(ComputeNode &node) const {
+  std::normal_distribution d{
+      0.0, std::sqrt(2.0 / static_cast<double>(_neurons.size()))};
   for (const auto n : _neurons) {
-    n->addInput(node, true);
+    double w = Random::get(d);
+    n->addInput(node, true, w);
   }
 }
 
@@ -30,9 +40,11 @@ void Layer::addNeuron(Neuron *n) { _neurons.push_back(n); }
 ComputeNode &Layer::getWeight(const int index) const {
   int i = 0;
   for (const auto n : _neurons) {
-    if (i + n->nbWeights() > index)
-      return n->getWeight(index - i);
-    i += n->nbWeights();
+    for (int j = 0; j < n->nbWeights(); ++j) {
+      if (i == index)
+        return n->getWeight(j);
+      ++i;
+    }
   }
   return _neurons[0]->getWeight(0);
 }
@@ -77,16 +89,16 @@ LayerIdentity::LayerIdentity(IComputeGraph &graph, const int size,
 
 // Layer builder
 std::unique_ptr<Layer> LayerBuilder::build(IComputeGraph &graph) {
-  switch (_type) {
+  switch (type) {
   case Type::ReLu:
-    return std::make_unique<LayerReLU>(graph, _size, _bias);
+    return std::make_unique<LayerReLU>(graph, size, bias);
   case Type::Sigmoid:
-    return std::make_unique<LayerSigmoid>(graph, _size, _bias);
+    return std::make_unique<LayerSigmoid>(graph, size, bias);
   case Type::Identity:
-    return std::make_unique<LayerIdentity>(graph, _size, _bias);
+    return std::make_unique<LayerIdentity>(graph, size, bias);
   }
-  return std::make_unique<LayerIdentity>(graph, _size, _bias);
+  return std::make_unique<LayerIdentity>(graph, size, bias);
 }
 LayerBuilder::LayerBuilder(const int size, const Type type, const bool addBias)
-    : _size(size), _type(type), _bias(addBias) {}
+    : size(size), type(type), bias(addBias) {}
 } // namespace ml

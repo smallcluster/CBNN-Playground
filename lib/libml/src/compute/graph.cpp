@@ -1,9 +1,15 @@
 #include "libml/compute/graph.h"
 
+#include <algorithm>
+
 namespace ml {
 
-bool ComputeEdge::operator<(const ComputeEdge &other) const {
-  return &src < &other.src || (&src == &other.src && &dst < &other.dst);
+bool ComputeEdge::operator==(const ComputeEdge &e) const {
+  return src == e.src && dst == e.dst && slot == e.slot;
+}
+bool ComputeEdge::operator<(const ComputeEdge &e) const {
+  return src < e.src || (src == e.src && dst < e.dst) ||
+         (src == e.src && dst == e.dst && slot < e.slot);
 }
 
 ComputeGraph::ComputeGraph() : _nodeFactory(*this) {}
@@ -13,30 +19,31 @@ ComputeGraph::~ComputeGraph() {
     delete n;
 }
 
+uint32_t ComputeGraph::newId() { return _nextId++; }
+
 ComputeEdge ComputeGraph::createEdge(ComputeNode &src, ComputeNode &dst,
                                      const std::optional<int> &slot) {
-  src.connect(dst, slot);
-  const ComputeEdge e = {src, dst};
-  _edges.insert(e);
+  int newSlot = src.connect(dst, slot);
+  ComputeEdge e = {&src, &dst, newSlot};
+  if (std::find(_edges.begin(), _edges.end(), e) == _edges.end()) {
+    _edges.push_back(e);
+  }
   return e;
 }
-void ComputeGraph::removeEdge(const ComputeEdge &edge) {
-  edge.src.disconnect(edge.dst);
-  _edges.erase(edge);
+
+void ComputeGraph::removeEdge(ComputeEdge &edge) {
+  edge.src->disconnect(*edge.dst);
+  std::remove(_edges.begin(), _edges.end(), edge);
 }
 
-std::set<ComputeEdge> &ComputeGraph::getEdges() { return _edges; }
+std::vector<ComputeEdge> &ComputeGraph::getEdges() { return _edges; }
 
 void ComputeGraph::removeNode(ComputeNode &node) {
   node.clearConnections();
-  std::set<ComputeEdge> toRemove;
-  for (auto e : _edges)
-    if (&e.src == &node || &e.dst == &node)
-      toRemove.insert(e);
-  for (auto e : toRemove)
-    _edges.erase(e);
+  std::erase_if(_edges, [&node](ComputeEdge &e) {
+    return e.src == &node || e.dst == &node;
+  });
   _nodes.erase(std::ranges::find(_nodes, &node));
-
   if (node.decOwnerCount() == 0)
     delete &node;
 }
@@ -58,35 +65,39 @@ ComputeSubGraph::ComputeSubGraph(IComputeGraph &graph)
     : _graph(graph), _nodeFactory(*this) {}
 
 ComputeSubGraph::~ComputeSubGraph() {
-  std::vector<ComputeNode *> tmp{_nodes.begin(), _nodes.end()};
-  for (const auto node : tmp)
-    ComputeSubGraph::removeNode(*node);
+  for (const auto n : _nodes) {
+    n->decOwnerCount();
+    _graph.removeNode(*n);
+  }
 }
+
+uint32_t ComputeSubGraph::newId() { return _graph.newId(); }
 
 ComputeEdge ComputeSubGraph::createEdge(ComputeNode &src, ComputeNode &dst,
                                         const std::optional<int> &slot) {
-  const ComputeEdge e = _graph.createEdge(src, dst, slot);
-  _edges.insert(e);
+  ComputeEdge e = _graph.createEdge(src, dst, slot);
+  if (std::find(_edges.begin(), _edges.end(), e) == _edges.end()) {
+    _edges.push_back(e);
+  }
   return e;
 }
-void ComputeSubGraph::removeEdge(const ComputeEdge &edge) {
-  _edges.erase(edge);
+
+void ComputeSubGraph::removeEdge(ComputeEdge &edge) {
+  std::remove(_edges.begin(), _edges.end(), edge);
   _graph.removeEdge(edge);
 }
-std::set<ComputeEdge> &ComputeSubGraph::getEdges() { return _edges; }
+
+std::vector<ComputeEdge> &ComputeSubGraph::getEdges() { return _edges; }
 
 void ComputeSubGraph::removeNode(ComputeNode &node) {
   node.decOwnerCount();
-  std::set<ComputeEdge> toRemove;
-  for (auto e : _edges)
-    if (&e.src == &node || &e.dst == &node)
-      toRemove.insert(e);
-  for (auto e : toRemove)
-    removeEdge(e);
-  if (const auto it = std::ranges::find(_nodes, &node); it != _nodes.end())
-    _nodes.erase(it);
+  std::erase_if(_edges, [&node](ComputeEdge &e) {
+    return e.src == &node || e.dst == &node;
+  });
+  _nodes.erase(std::ranges::find(_nodes, &node));
   _graph.removeNode(node);
 }
+
 ComputeNode &ComputeSubGraph::nodeAt(const int index) const {
   return *_nodes[index];
 }

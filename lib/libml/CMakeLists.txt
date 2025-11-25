@@ -32,6 +32,15 @@ set(SRCS
         src/neural/losses.cpp
 )
 
+# effolkronium_random
+FetchContent_Declare(
+        effolkronium_random
+        GIT_REPOSITORY https://github.com/ilqvya/random.git
+        GIT_TAG master
+        GIT_SHALLOW 1
+)
+FetchContent_MakeAvailable(effolkronium_random)
+
 add_library(${PROJECT_NAME} STATIC ${SRCS} ${HEADERS})
 
 target_include_directories(${PROJECT_NAME}
@@ -40,3 +49,5 @@ target_include_directories(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE effolkronium_random)

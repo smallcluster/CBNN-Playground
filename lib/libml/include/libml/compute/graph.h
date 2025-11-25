@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <set>
 #include <vector>
@@ -9,9 +10,11 @@
 namespace ml {
 
 struct ComputeEdge {
-  ComputeNode &src;
-  ComputeNode &dst;
-  bool operator<(const ComputeEdge &other) const;
+  ComputeNode *src;
+  ComputeNode *dst;
+  int slot;
+  bool operator==(const ComputeEdge &e) const;
+  bool operator<(const ComputeEdge &e) const;
 };
 
 class IComputeGraph {
@@ -20,13 +23,17 @@ public:
   virtual ~IComputeGraph() = default;
   virtual ComputeEdge createEdge(ComputeNode &src, ComputeNode &dst,
                                  const std::optional<int> &slot) = 0;
-  virtual void removeEdge(const ComputeEdge &edge) = 0;
-  virtual std::set<ComputeEdge> &getEdges() = 0;
+  virtual void removeEdge(ComputeEdge &edge) = 0;
+  virtual std::vector<ComputeEdge> &getEdges() = 0;
   virtual void removeNode(ComputeNode &node) = 0;
-  [[nodiscard]] virtual ComputeNode &nodeAt(int index) const = 0;
-  [[nodiscard]] virtual int nbNodes() const = 0;
+  virtual ComputeNode &nodeAt(int index) const = 0;
+  virtual int nbNodes() const = 0;
   virtual NodeFactory &nodeFactory() = 0;
   virtual void registerNode(std::unique_ptr<ComputeNode> node) = 0;
+  virtual uint32_t newId() = 0;
+  //  Not copyable
+  IComputeGraph &operator=(const IComputeGraph &) = delete;
+  IComputeGraph(const IComputeGraph &) = delete;
 };
 
 class ComputeGraph final : public IComputeGraph {
@@ -35,21 +42,23 @@ public:
   ~ComputeGraph() override;
   ComputeEdge createEdge(ComputeNode &src, ComputeNode &dst,
                          const std::optional<int> &slot) override;
-  void removeEdge(const ComputeEdge &edge) override;
-  std::set<ComputeEdge> &getEdges() override;
+  void removeEdge(ComputeEdge &edge) override;
+  std::vector<ComputeEdge> &getEdges() override;
   void removeNode(ComputeNode &node) override;
-  [[nodiscard]] ComputeNode &nodeAt(int index) const override;
-  [[nodiscard]] int nbNodes() const override;
+  ComputeNode &nodeAt(int index) const override;
+  int nbNodes() const override;
   NodeFactory &nodeFactory() override;
   void registerNode(std::unique_ptr<ComputeNode> node) override;
-  // Not copyable
+  //  Not copyable
   ComputeGraph &operator=(const ComputeGraph &) = delete;
   ComputeGraph(const ComputeGraph &) = delete;
+  uint32_t newId() override;
 
 private:
   std::vector<ComputeNode *> _nodes;
-  std::set<ComputeEdge> _edges;
+  std::vector<ComputeEdge> _edges;
   NodeFactory _nodeFactory;
+  uint32_t _nextId = 0;
 };
 
 class ComputeSubGraph : public IComputeGraph {
@@ -58,20 +67,24 @@ public:
   ~ComputeSubGraph() override;
   ComputeEdge createEdge(ComputeNode &src, ComputeNode &dst,
                          const std::optional<int> &slot) override;
-  void removeEdge(const ComputeEdge &edge) override;
-  std::set<ComputeEdge> &getEdges() override;
+  void removeEdge(ComputeEdge &edge) override;
+  std::vector<ComputeEdge> &getEdges() override;
   void removeNode(ComputeNode &node) override;
-  [[nodiscard]] ComputeNode &nodeAt(int index) const override;
-  [[nodiscard]] int nbNodes() const override;
+  ComputeNode &nodeAt(int index) const override;
+  int nbNodes() const override;
   NodeFactory &nodeFactory() override;
   void registerNode(std::unique_ptr<ComputeNode> node) override;
-  [[nodiscard]] IComputeGraph &baseGraph() const;
+  IComputeGraph &baseGraph() const;
+  //  Not copyable
+  ComputeSubGraph &operator=(const ComputeSubGraph &) = delete;
+  ComputeSubGraph(const ComputeSubGraph &) = delete;
+  uint32_t newId() override;
 
 private:
   IComputeGraph &_graph;
   NodeFactory _nodeFactory;
   std::vector<ComputeNode *> _nodes;
-  std::set<ComputeEdge> _edges;
+  std::vector<ComputeEdge> _edges;
 };
 
 } // namespace ml

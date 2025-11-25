@@ -6,16 +6,15 @@
 #include <memory>
 #include <vector>
 
-
 namespace ml {
 
 class Neuron : public ComputeSubGraph {
 public:
-  [[nodiscard]] ComputeNode &output() const;
-  void addInput(ComputeNode &node, bool addWeight = true);
-  void connectToNeuron(Neuron &other) const;
-  [[nodiscard]] ComputeNode &getWeight(int index) const;
-  [[nodiscard]] int nbWeights() const;
+  ComputeNode &output() const;
+  void addInput(ComputeNode &node, bool addWeight, double weight);
+  void connectToNeuron(Neuron &other, double weight) const;
+  ComputeNode &getWeight(int index) const;
+  int nbWeights() const;
 
 protected:
   explicit Neuron(IComputeGraph &graph);
