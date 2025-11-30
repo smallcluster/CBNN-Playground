@@ -6,6 +6,7 @@ set(HEADERS
         # Compute graphs
         include/libml/compute/graph.h
         include/libml/compute/nodes.h
+        include/libml/compute/visitors.h
         # Neural networks
         include/libml/neural/activations.h
         include/libml/neural/aggregations.h
@@ -21,6 +22,7 @@ set(SRCS
         # Compute graphs
         src/compute/nodes.cpp
         src/compute/graph.cpp
+        src/compute/visitors.cpp
         # Neural networks
         src/neural/dataset.cpp
         src/neural/activations.cpp

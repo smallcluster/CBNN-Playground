@@ -9,6 +9,7 @@ void Neuron::addInput(ComputeNode &node, const bool addWeight,
                       const double weight) {
   if (addWeight) {
     ConstantNode &weightNodde = nodeFactory().createConstantNode(weight);
+    weightNodde.setLabelPrefix("W: ");
     _inputWeights.push_back(&weightNodde);
     MultNode &m = nodeFactory().createMultNode();
     createEdge(weightNodde, m, 0);

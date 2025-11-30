@@ -33,7 +33,7 @@ class ComputeNode {
 public:
   explicit ComputeNode(uint32_t id);
   virtual ~ComputeNode() = default;
-  virtual const char *label() = 0;
+  virtual std::string label() = 0;
   virtual double pdiff(int index) = 0;
   double eval();
   double diff();
@@ -75,7 +75,7 @@ private:
 class IdentityNode final : public ComputeNode {
 public:
   explicit IdentityNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -86,10 +86,11 @@ private:
 
 class ConstantNode final : public ComputeNode {
 public:
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void set(double value);
   void setLabel(const std::string &label);
+  void setLabelPrefix(const std::string &prefix);
   explicit ConstantNode(uint32_t id, double value,
                         const std::string &label = "");
   void forwardVisit(ComputeNodeVisitor &v) override;
@@ -98,13 +99,14 @@ public:
 private:
   double _value;
   std::string _label;
+  std::string _labelPrefix;
   double _eval() override;
 };
 
 class MultNode final : public ComputeNode {
 public:
   explicit MultNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -115,7 +117,7 @@ private:
 
 class CteMultNode final : public ComputeNode {
 public:
-  const char *label() override;
+  std::string label() override;
   void setCte(double cte);
   double getCte() const;
   explicit CteMultNode(uint32_t id, double cte);
@@ -131,7 +133,7 @@ private:
 class DivideNode final : public ComputeNode {
 public:
   explicit DivideNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -142,7 +144,7 @@ private:
 
 class CteDivideNode final : public ComputeNode {
 public:
-  const char *label() override;
+  std::string label() override;
   void setCte(double cte);
   double getCte() const;
   explicit CteDivideNode(uint32_t id, double cte);
@@ -158,7 +160,7 @@ private:
 class SubNode final : public ComputeNode {
 public:
   explicit SubNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -170,7 +172,7 @@ private:
 class UnarySubNode final : public ComputeNode {
 public:
   explicit UnarySubNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -182,7 +184,7 @@ private:
 class AddNode final : public ComputeNode {
 public:
   explicit AddNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -194,7 +196,7 @@ private:
 class ReLUNode final : public ComputeNode {
 public:
   explicit ReLUNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -206,7 +208,7 @@ private:
 class SigmoidNode final : public ComputeNode {
 public:
   explicit SigmoidNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -217,7 +219,7 @@ private:
 
 class CtePowerNode final : public ComputeNode {
 public:
-  const char *label() override;
+  std::string label() override;
   void setPower(int power);
   int getPower() const;
   explicit CtePowerNode(uint32_t id, int power);
@@ -233,7 +235,7 @@ private:
 class PowerNode final : public ComputeNode {
 public:
   explicit PowerNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -245,7 +247,7 @@ private:
 class ExpNode final : public ComputeNode {
 public:
   explicit ExpNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -257,7 +259,7 @@ private:
 class LnNode final : public ComputeNode {
 public:
   explicit LnNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -269,7 +271,7 @@ private:
 class AbsNode final : public ComputeNode {
 public:
   explicit AbsNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -281,7 +283,7 @@ private:
 class InvertNode final : public ComputeNode {
 public:
   explicit InvertNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -293,7 +295,7 @@ private:
 class AvgNode final : public ComputeNode {
 public:
   explicit AvgNode(uint32_t id);
-  const char *label() override;
+  std::string label() override;
   double pdiff(int index) override;
   void forwardVisit(ComputeNodeVisitor &v) override;
   void backwardVisit(ComputeNodeVisitor &v) override;
@@ -333,24 +335,24 @@ private:
 
 class ComputeNodeVisitor {
 public:
-  virtual void visit(IdentityNode &n) = 0;
-  virtual void visit(ConstantNode &n) = 0;
-  virtual void visit(MultNode &n) = 0;
-  virtual void visit(DivideNode &n) = 0;
-  virtual void visit(UnarySubNode &n) = 0;
-  virtual void visit(SubNode &n) = 0;
-  virtual void visit(AddNode &n) = 0;
-  virtual void visit(ReLUNode &n) = 0;
-  virtual void visit(SigmoidNode &n) = 0;
-  virtual void visit(CtePowerNode &n) = 0;
-  virtual void visit(PowerNode &n) = 0;
-  virtual void visit(ExpNode &n) = 0;
-  virtual void visit(CteMultNode &n) = 0;
-  virtual void visit(CteDivideNode &n) = 0;
-  virtual void visit(LnNode &n) = 0;
-  virtual void visit(AbsNode &n) = 0;
-  virtual void visit(AvgNode &n) = 0;
-  virtual void visit(InvertNode &n) = 0;
+  virtual bool visit(IdentityNode &n) = 0;
+  virtual bool visit(ConstantNode &n) = 0;
+  virtual bool visit(MultNode &n) = 0;
+  virtual bool visit(DivideNode &n) = 0;
+  virtual bool visit(UnarySubNode &n) = 0;
+  virtual bool visit(SubNode &n) = 0;
+  virtual bool visit(AddNode &n) = 0;
+  virtual bool visit(ReLUNode &n) = 0;
+  virtual bool visit(SigmoidNode &n) = 0;
+  virtual bool visit(CtePowerNode &n) = 0;
+  virtual bool visit(PowerNode &n) = 0;
+  virtual bool visit(ExpNode &n) = 0;
+  virtual bool visit(CteMultNode &n) = 0;
+  virtual bool visit(CteDivideNode &n) = 0;
+  virtual bool visit(LnNode &n) = 0;
+  virtual bool visit(AbsNode &n) = 0;
+  virtual bool visit(AvgNode &n) = 0;
+  virtual bool visit(InvertNode &n) = 0;
   virtual ~ComputeNodeVisitor() = default;
 
 protected:

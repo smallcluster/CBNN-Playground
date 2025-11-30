@@ -33,8 +33,10 @@ Optimizer::Optimizer(MLP &mlp, std::unique_ptr<Loss> loss)
 
   // Create Cte nodes for each true inputs
   for (int i = 0; i < mlp.nbOutputs(); ++i) {
-    _trueValues.push_back(
-        &this->ComputeSubGraph::nodeFactory().createConstantNode(0.0));
+    ConstantNode *n =
+        &this->ComputeSubGraph::nodeFactory().createConstantNode(0.0);
+    n->setLabelPrefix("T: ");
+    _trueValues.push_back(n);
   }
 
   // Connect the mlp and the true inputs to the loss sub graph

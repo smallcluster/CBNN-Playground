@@ -31,6 +31,8 @@ public:
   virtual NodeFactory &nodeFactory() = 0;
   virtual void registerNode(std::unique_ptr<ComputeNode> node) = 0;
   virtual uint32_t newId() = 0;
+  virtual std::vector<std::reference_wrapper<ComputeNode>> getInputsNodes() = 0;
+  virtual std::vector<std::reference_wrapper<ComputeNode>> getOutputNodes() = 0;
   //  Not copyable
   IComputeGraph &operator=(const IComputeGraph &) = delete;
   IComputeGraph(const IComputeGraph &) = delete;
@@ -49,6 +51,10 @@ public:
   int nbNodes() const override;
   NodeFactory &nodeFactory() override;
   void registerNode(std::unique_ptr<ComputeNode> node) override;
+  virtual std::vector<std::reference_wrapper<ComputeNode>>
+  getInputsNodes() override;
+  virtual std::vector<std::reference_wrapper<ComputeNode>>
+  getOutputNodes() override;
   //  Not copyable
   ComputeGraph &operator=(const ComputeGraph &) = delete;
   ComputeGraph(const ComputeGraph &) = delete;
@@ -75,6 +81,10 @@ public:
   NodeFactory &nodeFactory() override;
   void registerNode(std::unique_ptr<ComputeNode> node) override;
   IComputeGraph &baseGraph() const;
+  virtual std::vector<std::reference_wrapper<ComputeNode>>
+  getInputsNodes() override;
+  virtual std::vector<std::reference_wrapper<ComputeNode>>
+  getOutputNodes() override;
   //  Not copyable
   ComputeSubGraph &operator=(const ComputeSubGraph &) = delete;
   ComputeSubGraph(const ComputeSubGraph &) = delete;

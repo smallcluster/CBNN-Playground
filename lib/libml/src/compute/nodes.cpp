@@ -41,6 +41,7 @@ std::vector<int> Slots::getIndices() {
 // BASE
 
 ComputeNode::ComputeNode(const uint32_t id) : _id(id) {}
+std::string ComputeNode::label() { return "UNKNOWN"; }
 int ComputeNode::incOwnerCount() { return ++_ownerCount; };
 int ComputeNode::decOwnerCount() { return --_ownerCount; };
 int ComputeNode::ownerCount() { return _ownerCount; };
@@ -134,16 +135,20 @@ void ComputeNode::_clearCache() {
 
 // IDENTITY
 IdentityNode::IdentityNode(const uint32_t id) : ComputeNode(id) {}
-const char *IdentityNode::label() { return "Id"; }
+std::string IdentityNode::label() { return "Identity"; }
 double IdentityNode::_eval() { return inputAt(0).eval(); }
 double IdentityNode::pdiff(const int index) { return 1.0; }
 void IdentityNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void IdentityNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
@@ -155,10 +160,13 @@ ConstantNode::ConstantNode(const uint32_t id, const double value,
   _value = value;
   _label = label;
 }
-const char *ConstantNode::label() {
+std::string ConstantNode::label() {
   if (_label.empty())
-    return std::to_string(_value).c_str();
-  return _label.c_str();
+    return _labelPrefix + std::to_string(_value);
+  return _labelPrefix + _label;
+}
+void ConstantNode::setLabelPrefix(const std::string &prefix) {
+  _labelPrefix = prefix;
 }
 void ConstantNode::set(const double value) {
   _value = value;
@@ -168,19 +176,23 @@ void ConstantNode::setLabel(const std::string &label) { _label = label; }
 double ConstantNode::_eval() { return _value; }
 double ConstantNode::pdiff(const int index) { return 0.0; }
 void ConstantNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void ConstantNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // MULTIPLICATION
 MultNode::MultNode(const uint32_t id) : ComputeNode(id) {}
-const char *MultNode::label() { return "*"; }
+std::string MultNode::label() { return "*"; }
 double MultNode::_eval() {
   double r = inputAt(0).eval();
   for (int i = 1; i < nbInputs(); ++i)
@@ -195,21 +207,23 @@ double MultNode::pdiff(const int index) {
   return r;
 }
 void MultNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void MultNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 CteMultNode::CteMultNode(const uint32_t id, const double cte)
     : ComputeNode(id), _cte(cte) {}
-const char *CteMultNode::label() {
-  return ("*" + std::to_string(_cte)).c_str();
-}
+std::string CteMultNode::label() { return "*" + std::to_string(_cte); }
 void CteMultNode::setCte(const double cte) {
   _cte = cte;
   invalidateCache();
@@ -218,19 +232,23 @@ double CteMultNode::getCte() const { return _cte; }
 double CteMultNode::_eval() { return inputAt(0).eval() * _cte; }
 double CteMultNode::pdiff(const int index) { return _cte; }
 void CteMultNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void CteMultNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // DIVISION
 DivideNode::DivideNode(const uint32_t id) : ComputeNode(id) {}
-const char *DivideNode::label() { return "/"; }
+std::string DivideNode::label() { return "/"; }
 double DivideNode::_eval() { return inputAt(0).eval() / inputAt(1).eval(); }
 double DivideNode::pdiff(const int index) {
   const double x = inputAt(1).eval();
@@ -239,21 +257,23 @@ double DivideNode::pdiff(const int index) {
   return -inputAt(0).eval() / (x * x);
 }
 void DivideNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void DivideNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 CteDivideNode::CteDivideNode(const uint32_t id, const double cte)
     : ComputeNode(id), _cte(cte) {}
-const char *CteDivideNode::label() {
-  return ("/" + std::to_string(_cte)).c_str();
-}
+std::string CteDivideNode::label() { return "/" + std::to_string(_cte); }
 void CteDivideNode::setCte(const double cte) {
   _cte = cte;
   invalidateCache();
@@ -262,50 +282,63 @@ double CteDivideNode::getCte() const { return _cte; }
 double CteDivideNode::_eval() { return inputAt(0).eval() / _cte; }
 double CteDivideNode::pdiff(const int index) { return 1.0 / _cte; }
 void CteDivideNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void CteDivideNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // SUBSTRACTION
 SubNode::SubNode(const uint32_t id) : ComputeNode(id) {}
-const char *SubNode::label() { return "-"; }
+std::string SubNode::label() { return "-"; }
 double SubNode::_eval() { return inputAt(0).eval() - inputAt(1).eval(); }
 double SubNode::pdiff(const int index) { return index == 0 ? 1.0 : -1.0; }
 void SubNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void SubNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
+
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 UnarySubNode::UnarySubNode(const uint32_t id) : ComputeNode(id) {}
-const char *UnarySubNode::label() { return "-"; }
+std::string UnarySubNode::label() { return "-"; }
 double UnarySubNode::_eval() { return -inputAt(0).eval(); }
 double UnarySubNode::pdiff(const int index) { return -1.0; }
 void UnarySubNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void UnarySubNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // ADDITION
 AddNode::AddNode(const uint32_t id) : ComputeNode(id) {}
-const char *AddNode::label() { return "+"; }
+std::string AddNode::label() { return "+"; }
 double AddNode::_eval() {
   double r = 0.0;
   for (int i = 0; i < nbInputs(); ++i)
@@ -314,57 +347,67 @@ double AddNode::_eval() {
 }
 double AddNode::pdiff(const int index) { return 1.0; }
 void AddNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void AddNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // ACTIVATION FUNCTIONS
 ReLUNode::ReLUNode(const uint32_t id) : ComputeNode(id) {}
-const char *ReLUNode::label() { return "ReLU"; }
+std::string ReLUNode::label() { return "ReLU"; }
 double ReLUNode::_eval() { return std::max(0.0, inputAt(0).eval()); }
 double ReLUNode::pdiff(const int index) {
   return inputAt(0).eval() <= 0 ? 0.0 : 1.0;
 }
 void ReLUNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void ReLUNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 SigmoidNode::SigmoidNode(const uint32_t id) : ComputeNode(id) {}
-const char *SigmoidNode::label() { return "Sigmoid"; }
+std::string SigmoidNode::label() { return "Sigmoid"; }
 double SigmoidNode::_eval() { return 1.0 / (1 + std::exp(-inputAt(0).eval())); }
 double SigmoidNode::pdiff(const int index) {
   const double v = eval();
   return v * (1.0 - v);
 }
 void SigmoidNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void SigmoidNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // POWER
 
-const char *CtePowerNode::label() {
-  return ("^" + std::to_string(_power)).c_str();
-}
+std::string CtePowerNode::label() { return "^" + std::to_string(_power); }
 CtePowerNode::CtePowerNode(const uint32_t id, const int power)
     : ComputeNode(id), _power(power) {}
 int CtePowerNode::getPower() const { return _power; }
@@ -377,18 +420,22 @@ double CtePowerNode::pdiff(const int index) {
   return _power * std::pow(inputAt(0).eval(), _power - 1);
 }
 void CtePowerNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void CtePowerNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 PowerNode::PowerNode(const uint32_t id) : ComputeNode(id) {}
-const char *PowerNode::label() { return "^"; }
+std::string PowerNode::label() { return "^"; }
 double PowerNode::_eval() {
   return std::pow(inputAt(0).eval(), inputAt(1).eval());
 }
@@ -400,51 +447,63 @@ double PowerNode::pdiff(const int index) {
          std::log(inputAt(1).eval());
 }
 void PowerNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void PowerNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // EXP
 ExpNode::ExpNode(const uint32_t id) : ComputeNode(id) {}
-const char *ExpNode::label() { return "exp"; }
+std::string ExpNode::label() { return "exp"; }
 double ExpNode::_eval() { return std::exp(inputAt(0).eval()); }
 double ExpNode::pdiff(const int index) { return std::exp(inputAt(0).eval()); }
 void ExpNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void ExpNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // LN
 LnNode::LnNode(const uint32_t id) : ComputeNode(id) {}
-const char *LnNode::label() { return "ln"; }
+std::string LnNode::label() { return "ln"; }
 double LnNode::_eval() { return std::log(inputAt(0).eval()); }
 double LnNode::pdiff(const int index) { return 1.0 / inputAt(0).eval(); }
 void LnNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void LnNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // ABS
 AbsNode::AbsNode(const uint32_t id) : ComputeNode(id) {}
-const char *AbsNode::label() { return "abs"; }
+std::string AbsNode::label() { return "abs"; }
 double AbsNode::_eval() { return std::abs(inputAt(0).eval()); }
 double AbsNode::pdiff(const int index) {
   const double v = inputAt(0).eval();
@@ -453,38 +512,46 @@ double AbsNode::pdiff(const int index) {
   return v < 0 ? -1.0 : 1.0;
 }
 void AbsNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void AbsNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // 1/x
 InvertNode::InvertNode(const uint32_t id) : ComputeNode(id) {}
-const char *InvertNode::label() { return "1/x"; }
+std::string InvertNode::label() { return "1/x"; }
 double InvertNode::_eval() { return 1.0 / inputAt(0).eval(); }
 double InvertNode::pdiff(const int index) {
   const double v = inputAt(0).eval();
   return -1.0 / (v * v);
 }
 void InvertNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void InvertNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }
 
 // AVG
 AvgNode::AvgNode(const uint32_t id) : ComputeNode(id) {}
-const char *AvgNode::label() { return "AVG"; }
+std::string AvgNode::label() { return "AVG"; }
 double AvgNode::_eval() {
   double avg = 0;
   const int n = nbInputs();
@@ -494,12 +561,16 @@ double AvgNode::_eval() {
 }
 double AvgNode::pdiff(const int index) { return 1.0 / nbInputs(); }
 void AvgNode::forwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbOutputs(); ++i)
     outputAt(i).forwardVisit(v);
 }
 void AvgNode::backwardVisit(ComputeNodeVisitor &v) {
-  v.visit(*this);
+  bool skip = v.visit(*this);
+  if (skip)
+    return;
   for (int i = 0; i < nbInputs(); ++i)
     inputAt(i).backwardVisit(v);
 }

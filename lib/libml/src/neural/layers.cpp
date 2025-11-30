@@ -63,8 +63,11 @@ LayerReLU::LayerReLU(IComputeGraph &graph, const int size, const bool addBias)
     addNeuron(new NeuronReLu(*this));
   }
   // Bias
-  if (addBias)
-    addInput(Layer::nodeFactory().createConstantNode(1.0));
+  if (addBias) {
+    ConstantNode &b = Layer::nodeFactory().createConstantNode(1.0);
+    b.setLabelPrefix("B: ");
+    addInput(b);
+  }
 }
 LayerSigmoid::LayerSigmoid(IComputeGraph &graph, const int size,
                            const bool addBias)
@@ -73,8 +76,11 @@ LayerSigmoid::LayerSigmoid(IComputeGraph &graph, const int size,
     addNeuron(new NeuronSigmoid(*this));
   }
   // Bias
-  if (addBias)
-    addInput(Layer::nodeFactory().createConstantNode(1.0));
+  if (addBias) {
+    ConstantNode &b = Layer::nodeFactory().createConstantNode(1.0);
+    b.setLabelPrefix("B: ");
+    addInput(b);
+  }
 }
 LayerIdentity::LayerIdentity(IComputeGraph &graph, const int size,
                              const bool addBias)
@@ -83,8 +89,11 @@ LayerIdentity::LayerIdentity(IComputeGraph &graph, const int size,
     addNeuron(new NeuronIdentity(*this));
   }
   // Bias
-  if (addBias)
-    addInput(Layer::nodeFactory().createConstantNode(1.0));
+  if (addBias) {
+    ConstantNode &b = Layer::nodeFactory().createConstantNode(1.0);
+    b.setLabelPrefix("B: ");
+    addInput(b);
+  }
 }
 
 // Layer builder

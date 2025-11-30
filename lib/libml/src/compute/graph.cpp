@@ -19,6 +19,23 @@ ComputeGraph::~ComputeGraph() {
     delete n;
 }
 
+std::vector<std::reference_wrapper<ComputeNode>>
+ComputeGraph::getInputsNodes() {
+  std::vector<std::reference_wrapper<ComputeNode>> v;
+  for (ComputeNode *n : _nodes)
+    if (n->nbInputs() == 0)
+      v.push_back(*n);
+  return std::move(v);
+}
+std::vector<std::reference_wrapper<ComputeNode>>
+ComputeGraph::getOutputNodes() {
+  std::vector<std::reference_wrapper<ComputeNode>> v;
+  for (ComputeNode *n : _nodes)
+    if (n->nbOutputs() == 0)
+      v.push_back(*n);
+  return std::move(v);
+}
+
 uint32_t ComputeGraph::newId() { return _nextId++; }
 
 ComputeEdge ComputeGraph::createEdge(ComputeNode &src, ComputeNode &dst,
@@ -69,6 +86,23 @@ ComputeSubGraph::~ComputeSubGraph() {
     n->decOwnerCount();
     _graph.removeNode(*n);
   }
+}
+
+std::vector<std::reference_wrapper<ComputeNode>>
+ComputeSubGraph::getInputsNodes() {
+  std::vector<std::reference_wrapper<ComputeNode>> v;
+  for (ComputeNode *n : _nodes)
+    if (n->nbInputs() == 0)
+      v.push_back(*n);
+  return std::move(v);
+}
+std::vector<std::reference_wrapper<ComputeNode>>
+ComputeSubGraph::getOutputNodes() {
+  std::vector<std::reference_wrapper<ComputeNode>> v;
+  for (ComputeNode *n : _nodes)
+    if (n->nbOutputs() == 0)
+      v.push_back(*n);
+  return std::move(v);
 }
 
 uint32_t ComputeSubGraph::newId() { return _graph.newId(); }

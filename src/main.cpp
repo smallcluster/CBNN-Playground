@@ -17,6 +17,7 @@
 #include "tinyfiledialogs/tinyfiledialogs.h"
 
 #include "libml/compute/graph.h"
+#include "libml/compute/visitors.h"
 #include "libml/neural/dataset.h"
 #include "libml/neural/layers.h"
 #include "libml/neural/losses.h"
@@ -191,18 +192,28 @@ std::optional<std::string> openPngFile() {
   return {};
 }
 
-std::optional<std::string> savePngFile() {
-  const char *pngPattern = "*.png";
-  std::array<const char *, 1> patterns = {pngPattern};
-  const char *path = tinyfd_saveFileDialog("Save Image", "", patterns.size(),
+std::optional<std::string>
+saveFileExt(const std::vector<const char *> &patterns) {
+  const char *path = tinyfd_saveFileDialog("Save file", "", patterns.size(),
                                            patterns.data(), NULL);
-  if (path) {
-    std::string finalpath{path};
-    if (!finalpath.ends_with(".png"))
-      finalpath += ".png";
-    return finalpath;
-  }
+  if (path)
+    return path;
   return {};
+}
+
+std::optional<std::string> savePngFile() {
+  // const char *pngPattern = "*.png";
+  // std::array<const char *, 1> patterns = {pngPattern};
+  // const char *path = tinyfd_saveFileDialog("Save Image", "", patterns.size(),
+  //                                          patterns.data(), NULL);
+  // if (path) {
+  //   std::string finalpath{path};
+  //   if (!finalpath.ends_with(".png"))
+  //     finalpath += ".png";
+  //   return finalpath;
+  // }
+  // return {};
+  return saveFileExt({"*.png"});
 }
 
 void writePngFromTexture(const std::string &path, Texture2D &t) {
@@ -359,6 +370,22 @@ int main(int argc, char *argv[]) {
       if (ImGui::MenuItem("Open")) {
       }
       if (ImGui::MenuItem("Save")) {
+      }
+      if (ImGui::MenuItem("Export to graphviz dot")) {
+        auto outputs = appState.g.getOutputNodes();
+        if (outputs.empty()) {
+          tinyfd_messageBox("Empty graph", "Compute graph is empty", "ok",
+                            "error", 1);
+        } else {
+          std::optional<std::string> path = saveFileExt({"*.dot"});
+          if (path.has_value()) {
+            ml::GraphvizVisitor v;
+            for (ml::ComputeNode &n : outputs) {
+              n.backwardVisit(v);
+            }
+            v.saveToFile(path.value());
+          }
+        }
       }
       ImGui::EndMenu();
     }

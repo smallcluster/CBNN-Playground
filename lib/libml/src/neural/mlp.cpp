@@ -15,7 +15,8 @@ MLP::MLP(IComputeGraph &graph, const std::vector<LayerBuilder> &layers)
 
   // Create constant inputs nodes
   for (int i = 0; i < _layers[0]->size(); ++i) {
-    ComputeNode &n = ComputeSubGraph::nodeFactory().createConstantNode(0);
+    ConstantNode &n = ComputeSubGraph::nodeFactory().createConstantNode(0);
+    n.setLabelPrefix("I: ");
     _inputs.push_back(&n);
   }
 
