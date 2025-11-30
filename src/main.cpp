@@ -78,6 +78,13 @@ public:
   int width() const { return _target.texture.width; }
   int height() const { return _target.texture.height; }
 
+  void imguiDraw() {
+    ImGui::Image(
+        ImTextureID(_target.texture.id),
+        ImVec2(float(_target.texture.width), float(_target.texture.height)),
+        {0, 1}, {1, 0});
+  }
+
 private:
   RenderTexture2D _target;
 };
@@ -404,11 +411,13 @@ int main(int argc, char *argv[]) {
       modelViewport.updateSize(ImGuiContentWidth(), ImGuiContentHeight());
       BeginTextureMode(modelViewport.target());
       ClearBackground(WHITE);
-      DrawCircle(modelViewport.width() / 2, modelViewport.height() / 2,
-                 std::min(modelViewport.width(), modelViewport.height()) / 4,
-                 RED);
+      DrawText("TODO", modelViewport.width() / 2, modelViewport.height() / 2,
+               32, RED);
+      // DrawCircle(modelViewport.width() / 2, modelViewport.height() / 2,
+      //            std::min(modelViewport.width(), modelViewport.height()) / 4,
+      //            RED);
       EndTextureMode();
-      rlImGuiImage(&modelViewport.texture());
+      modelViewport.imguiDraw();
     }
     ImGui::End();
 
@@ -416,12 +425,15 @@ int main(int argc, char *argv[]) {
       computeViewport.updateSize(ImGuiContentWidth(), ImGuiContentHeight());
       BeginTextureMode(computeViewport.target());
       ClearBackground(WHITE);
-      DrawCircle(computeViewport.width() / 2, computeViewport.height() / 2,
-                 std::min(computeViewport.width(), computeViewport.height()) /
-                     4,
-                 BLUE);
+      DrawText("TODO", modelViewport.width() / 2, modelViewport.height() / 2,
+               32, RED);
+      // DrawCircle(computeViewport.width() / 2, computeViewport.height() / 2,
+      //            std::min(computeViewport.width(), computeViewport.height())
+      //            /
+      //                4,
+      //            BLUE);
       EndTextureMode();
-      rlImGuiImage(&computeViewport.texture());
+      computeViewport.imguiDraw();
     }
     ImGui::End();
 
